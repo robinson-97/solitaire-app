@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../storage.dart';
+import 'how_to_play.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -77,7 +78,13 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ]),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 12),
+          PillButton(
+            label: 'How to play',
+            icon: Icons.help_outline_rounded,
+            onTap: () => Navigator.of(context).push(softRoute(HowToPlayScreen(onDone: () => Navigator.pop(context)))),
+          ),
+          const SizedBox(height: 12),
           PillButton(label: 'Reset progress', icon: Icons.delete_outline_rounded, danger: true, onTap: _confirmReset),
         ],
       );

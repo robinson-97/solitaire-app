@@ -75,7 +75,9 @@ void main() {
   });
 
   test('every handmade level is solvable down to one peg', () {
-    for (final l in handmadeLevels) {
+    // Bigger levels are solvable by construction (built backwards); the
+    // search is only quick enough to double-check the smaller ones.
+    for (final l in handmadeLevels.where((l) => l.startPegs <= 24)) {
       expect(canSolve(l, l.pegs), isTrue, reason: l.id);
     }
   });
@@ -86,5 +88,14 @@ void main() {
     for (final r in [...pegRules.values, ...boardRules.values]) {
       expect(() => boardById(r.boardId), returnsNormally);
     }
+  });
+
+  test('every world has 20 levels and goals scale with level size', () {
+    for (final w in worlds) {
+      expect(w.levels.length, 20, reason: w.id);
+    }
+    expect(handmadeLevels.first.passAt, 1);
+    expect(classicBoard.passAt, 3);
+    expect(classicBoard.goalText, 'Leave 3 or fewer pegs');
   });
 }

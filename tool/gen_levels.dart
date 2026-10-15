@@ -33,17 +33,23 @@ void main() {
   print('final List<BoardDef> handmadeLevels = [');
   final packs = [
     ('seedling', 'Seedling', Difficulty.easy, BoardShape.english, [4, 5, 6, 7, 8]),
-    ('sapling', 'Sapling', Difficulty.medium, BoardShape.english, [10, 12, 14, 16, 18]),
+    ('sprout', 'Sprout', Difficulty.easy, BoardShape.english, [9, 10, 11, 12, 13]),
+    ('sapling', 'Sapling', Difficulty.medium, BoardShape.english, [14, 15, 16, 17, 18]),
+    ('grove', 'Grove', Difficulty.medium, BoardShape.english, [19, 20, 21, 22, 23]),
     ('geode', 'Geode', Difficulty.medium, BoardShape.triangle, [5, 6, 7, 8, 9]),
-    ('facet', 'Facet', Difficulty.hard, BoardShape.french, [12, 14, 16, 18, 20]),
-    ('comet', 'Comet', Difficulty.hard, BoardShape.english, [20, 22, 24, 26, 28]),
-    ('meteor', 'Meteor', Difficulty.expert, BoardShape.french, [21, 24, 26, 28, 30]),
+    ('facet', 'Facet', Difficulty.medium, BoardShape.french, [10, 12, 14, 16, 18]),
+    ('prism', 'Prism', Difficulty.hard, BoardShape.english, [20, 21, 22, 23, 24]),
+    ('lumen', 'Lumen', Difficulty.hard, BoardShape.french, [20, 22, 24, 26, 28]),
+    ('comet', 'Comet', Difficulty.hard, BoardShape.english, [22, 23, 24, 25, 26]),
+    ('nova', 'Nova', Difficulty.hard, BoardShape.french, [24, 25, 26, 27, 28]),
+    ('meteor', 'Meteor', Difficulty.expert, BoardShape.english, [26, 27, 28, 28, 28]),
+    ('aurora', 'Aurora', Difficulty.expert, BoardShape.french, [28, 29, 30, 30, 30]),
   ];
   for (final (id, name, d, shape, counts) in packs) {
     final holes = shapeHoles(shape);
     final dirs = shape == BoardShape.triangle ? triangular : orthogonal;
     for (var i = 0; i < counts.length; i++) {
-      final rnd = Random(1000 * counts[i] + 7 + shape.index);
+      final rnd = Random(1000 * counts[i] + 7 + shape.index + i * 131 + id.codeUnits.fold(0, (a, b) => a + b));
       List<Pos>? res;
       for (var tries = 0; res == null && tries < 5000; tries++) {
         res = generate(holes, dirs, counts[i], rnd);

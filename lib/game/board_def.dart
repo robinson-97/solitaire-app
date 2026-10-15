@@ -60,6 +60,10 @@ class BoardDef {
   int get cols => holes.map((p) => p.col).reduce((a, b) => a > b ? a : b) + 1;
   int get startPegs => pegs.length;
 
+  /// A level counts as cleared when this many pegs (or fewer) are left.
+  int get passAt => startPegs < 10 ? 1 : (startPegs < 20 ? 2 : 3);
+  String get goalText => passAt == 1 ? 'Leave just 1 peg' : 'Leave $passAt or fewer pegs';
+
   /// Highest possible jump count (every peg but the last one).
   int get maxJumps => startPegs - 1;
 }

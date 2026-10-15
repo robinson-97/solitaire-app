@@ -5,7 +5,8 @@ import 'background.dart';
 import 'collection_screen.dart';
 import 'settings_screen.dart';
 import 'widgets.dart';
-import 'worlds_screen.dart';
+import 'how_to_play.dart';
+import 'play_screen.dart';
 
 /// Root screen: animated scenery plus the three main tabs.
 class Shell extends StatefulWidget {
@@ -18,6 +19,7 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int tab = 0;
+  late bool intro = !widget.storage.seenIntro;
   final ValueNotifier<WorldScene> worldScene = ValueNotifier(WorldScene.forest);
 
   @override
@@ -28,6 +30,12 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
+    if (intro) {
+      return HowToPlayScreen(onDone: () async {
+        await widget.storage.setSeenIntro();
+        if (mounted) setState(() => intro = false);
+      });
+    }
     return Scaffold(
       body: Stack(children: [
         Positioned.fill(
@@ -45,7 +53,7 @@ class _ShellState extends State<Shell> {
         SafeArea(
           bottom: false,
           child: IndexedStack(index: tab, children: [
-            WorldsPage(storage: widget.storage, sceneNotifier: worldScene),
+            PlayPage(storage: widget.storage, sceneNotifier: worldScene),
             CollectionPage(storage: widget.storage),
             SettingsPage(storage: widget.storage, onReset: () => setState(() {})),
           ]),

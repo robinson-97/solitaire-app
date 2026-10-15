@@ -37,7 +37,7 @@ final List<World> worlds = [
     name: 'Glimmerwood',
     tagline: 'A twilight forest where the fireflies keep watch.',
     scene: WorldScene.forest,
-    levelPacks: const ['seedling', 'sapling'],
+    levelPacks: const ['seedling', 'sprout', 'sapling', 'grove'],
     challenges: [triangleBoard, classicBoard],
   ),
   World(
@@ -45,7 +45,7 @@ final List<World> worlds = [
     name: 'Crystal Cavern',
     tagline: 'Deep caves, humming with glowing geodes.',
     scene: WorldScene.cavern,
-    levelPacks: const ['geode', 'facet'],
+    levelPacks: const ['geode', 'facet', 'prism', 'lumen'],
     challenges: [frenchBoard],
     unlockedBy: 'glimmerwood',
   ),
@@ -54,7 +54,7 @@ final List<World> worlds = [
     name: 'Starfall Peak',
     tagline: 'A frozen summit under a rain of falling stars.',
     scene: WorldScene.peak,
-    levelPacks: const ['comet', 'meteor'],
+    levelPacks: const ['comet', 'nova', 'meteor', 'aurora'],
     challenges: const [],
     unlockedBy: 'cavern',
   ),
@@ -69,8 +69,9 @@ BoardDef boardById(String id) => allBoards.firstWhere((b) => b.id == id);
 World worldOfBoard(String boardId) =>
     worlds.firstWhere((w) => w.allBoards.any((b) => b.id == boardId));
 
+/// Next level in the same world (bonus boards have no "next").
 BoardDef? nextLevel(BoardDef b) {
-  final w = worldOfBoard(b.id);
-  final i = w.allBoards.indexWhere((x) => x.id == b.id);
-  return i + 1 < w.allBoards.length ? w.allBoards[i + 1] : null;
+  final levels = worldOfBoard(b.id).levels;
+  final i = levels.indexWhere((x) => x.id == b.id);
+  return i >= 0 && i + 1 < levels.length ? levels[i + 1] : null;
 }

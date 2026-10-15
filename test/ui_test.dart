@@ -18,27 +18,26 @@ void _bigScreen(WidgetTester t) {
 }
 
 void main() {
-  testWidgets('worlds screen shows the first world; later worlds are locked', (t) async {
+  testWidgets('first launch shows the short explanation, then world 1', (t) async {
     _bigScreen(t);
     await t.pumpWidget(HopstoneApp(storage: await _storage()));
+    await t.pump(const Duration(milliseconds: 400));
+    expect(find.text('Jump to clear'), findsOneWidget);
+    await t.tap(find.text('Skip'));
     await t.pump(const Duration(milliseconds: 400));
     expect(find.text('Glimmerwood'), findsOneWidget);
-    expect(find.text('Enter world'), findsOneWidget);
+    expect(find.text('Play level 1'), findsOneWidget);
   });
 
-  testWidgets('entering a world and a level opens the game', (t) async {
+  testWidgets('a level opens from the grid and shows its goal', (t) async {
     _bigScreen(t);
-    await t.pumpWidget(HopstoneApp(storage: await _storage()));
+    await t.pumpWidget(HopstoneApp(storage: await _storage({'seen_intro': true})));
     await t.pump(const Duration(milliseconds: 400));
-    await t.tap(find.text('Enter world'));
-    await t.pump(const Duration(milliseconds: 100));
-    await t.pump(const Duration(milliseconds: 600));
-    expect(find.text('Seedling'), findsOneWidget);
-    await t.tap(find.text('1').first);
+    await t.tap(find.text('Play level 1'));
     await t.pump(const Duration(milliseconds: 100));
     await t.pump(const Duration(milliseconds: 600));
     expect(find.text('PEGS'), findsOneWidget);
-    expect(find.text('Undo'), findsOneWidget);
+    expect(find.text('Leave just 1 peg'), findsOneWidget);
   });
 
   test('worlds unlock by clearing the previous world', () async {

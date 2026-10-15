@@ -293,6 +293,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _finish() async {
     final score = game.score();
+    final cleared = game.pegsLeft <= widget.board.passAt;
+    final stars = !cleared ? 0 : 1 + (game.undosUsed == 0 ? 1 : 0) + (game.pegsLeft == 1 ? 1 : 0);
     final first = !submitted;
     submitted = true;
     var isBest = false;
@@ -302,15 +304,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final before = u.snapshot();
       isBest = await widget.storage.submitScore(widget.board.id, score.total);
       await widget.storage.addPoints(score.total);
-      if (game.pegsLeft == 1) await widget.storage.markSolved(widget.board.id);
+      if (cleared) {
+        await widget.storage.markSolved(widget.board.id);
+        await widget.storage.submitStars(widget.board.id, stars);
+      }
       unlocked = (u.snapshot().difference(before)).toList();
     }
     await Future.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
-    _showResult(score, isBest, unlocked);
+    _showResult(score, isBest, unlocked, cleared, stars);
   }
 
-  void _showResult(ScoreBreakdown s, bool isBest, List<String> unlocked) {
+  void _showResult(ScoreBreakdown s, bool isBest, List<String> unlocked, bool cleared, int stars) {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
@@ -319,11 +324,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         isBest: isBest,
         unlocked: unlocked,
         storage: widget.storage,
+        cleared: cleared,
+        stars: stars,
+        goal: widget.board.goalText,
         onRetry: () {
           Navigator.pop(ctx);
           setState(_reset);
         },
-        onNext: widget.nextBoard == null
+        onNext: !cleared || widget.nextBoard == null
             ? null
             : () {
                 Navigator.pop(ctx);
@@ -370,7 +378,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(widget.board.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 20, fontWeight: FontWeight.w700)),
-                    Text(worldOfBoard(widget.board.id).name, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
+                    Text(widget.board.goalText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: lantern)),
                   ]),
                 ),
                 Chip2(widget.board.difficulty.label.toUpperCase()),
@@ -762,6 +770,9 @@ class _ResultDialog extends StatefulWidget {
     required this.isBest,
     required this.unlocked,
     required this.storage,
+    required this.cleared,
+    required this.stars,
+    required this.goal,
     required this.onRetry,
     required this.onNext,
     required this.onMenu,
@@ -770,6 +781,9 @@ class _ResultDialog extends StatefulWidget {
   final bool isBest;
   final List<String> unlocked;
   final Storage storage;
+  final bool cleared;
+  final int stars;
+  final String goal;
   final VoidCallback onRetry;
   final VoidCallback? onNext;
   final VoidCallback onMenu;
@@ -875,11 +889,25 @@ class _ResultDialogState extends State<_ResultDialog> {
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             ShaderMask(
-              shaderCallback: (r) => const LinearGradient(colors: [Color(0xFFFFE9A8), Color(0xFFFFA43B)]).createShader(r),
-              child: Text(score.rank, style: displayFont.copyWith(fontSize: 40, fontWeight: FontWeight.w700, color: Colors.white)),
+              shaderCallback: (r) => LinearGradient(
+                colors: widget.cleared
+                    ? const [Color(0xFFFFE9A8), Color(0xFFFFA43B)]
+                    : const [Color(0xFFD8DCF5), Color(0xFF8E96C9)],
+              ).createShader(r),
+              child: Text(widget.cleared ? 'Level cleared!' : 'Not cleared yet',
+                  style: displayFont.copyWith(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.white)),
             ),
-            Text('${score.pegsLeft} ${score.pegsLeft == 1 ? 'peg' : 'pegs'} left',
-                style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.75))),
+            const SizedBox(height: 6),
+            if (widget.cleared)
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var i = 0; i < 3; i++)
+                  Icon(Icons.star_rounded, size: 34, color: i < widget.stars ? const Color(0xFFFFD25A) : Colors.white24),
+              ])
+            else
+              Text(widget.goal, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: lantern)),
+            const SizedBox(height: 4),
+            Text('${score.rank} · ${score.pegsLeft} ${score.pegsLeft == 1 ? 'peg' : 'pegs'} left',
+                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
             const SizedBox(height: 14),
             _row('Jumps', score.jumpPoints),
             _row('Pegs-left bonus', score.pegsLeftBonus),
@@ -924,7 +952,7 @@ class _ResultDialogState extends State<_ResultDialog> {
             Row(children: [
               Expanded(child: PillButton(label: 'Menu', onTap: widget.onMenu, compact: true)),
               const SizedBox(width: 8),
-              Expanded(child: PillButton(label: 'Retry', onTap: widget.onRetry, compact: true)),
+              Expanded(child: PillButton(label: 'Retry', primary: widget.onNext == null, onTap: widget.onRetry, compact: true)),
               if (widget.onNext != null) ...[
                 const SizedBox(width: 8),
                 Expanded(child: PillButton(label: 'Next', primary: true, onTap: widget.onNext, compact: true)),
