@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'shaders.dart';
 import 'styles.dart';
 
 /// A peg drawn as a lit sphere, with per-theme character.
@@ -61,17 +62,34 @@ class _PegPainter extends CustomPainter {
 
     final rect = Rect.fromCircle(center: c, radius: r);
     final glassy = theme.kind == PegKind.glass || theme.kind == PegKind.frost;
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.3, -0.45),
-          radius: 1.0,
-          colors: glassy ? [for (final k in cols) k.withValues(alpha: 0.92)] : cols,
-          stops: const [0.0, 0.3, 0.75, 1.0],
-        ).createShader(rect),
-    );
+    final spec = theme.mat;
+    if (spec != null && Gfx.material != null) {
+      final sh = Gfx.material!.fragmentShader()
+        ..setFloat(0, s.width)
+        ..setFloat(1, s.height)
+        ..setFloat(2, glow * 20)
+        ..setFloat(3, spec.mode);
+      var i = 4;
+      for (final col in [spec.c1, spec.c2, spec.c3]) {
+        sh
+          ..setFloat(i++, col.r)
+          ..setFloat(i++, col.g)
+          ..setFloat(i++, col.b);
+      }
+      canvas.drawRect(Offset.zero & s, Paint()..shader = sh);
+    } else {
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(-0.3, -0.45),
+            radius: 1.0,
+            colors: glassy ? [for (final k in cols) k.withValues(alpha: 0.92)] : cols,
+            stops: const [0.0, 0.3, 0.75, 1.0],
+          ).createShader(rect),
+      );
+    }
 
     canvas.save();
     canvas.clipPath(Path()..addOval(rect));
@@ -293,6 +311,8 @@ class _PegPainter extends CustomPainter {
           canvas.drawOval(Rect.fromCenter(center: o, width: r * (0.2 + rr.nextDouble() * 0.12), height: r * 0.17), chip);
           canvas.drawCircle(o - Offset(r * 0.03, r * 0.03), r * 0.03, Paint()..color = Colors.white.withValues(alpha: 0.25));
         }
+      case PegKind.material:
+        break;
       case PegKind.ember:
         final facet = Paint()..color = const Color(0xFF3A0A02).withValues(alpha: 0.35)..strokeWidth = 1.2..style = PaintingStyle.stroke;
         for (var i = 0; i < 6; i++) {
@@ -313,9 +333,21 @@ class _PegPainter extends CustomPainter {
       canvas.restore();
     }
 
+    if (theme.kind != PegKind.material && Gfx.gloss != null) {
+      for (final pass in [0.0, 1.0]) {
+        final sh = Gfx.gloss!.fragmentShader()
+          ..setFloat(0, s.width)
+          ..setFloat(1, s.height)
+          ..setFloat(2, pass)
+          ..setFloat(3, theme.shine);
+        canvas.drawRect(Offset.zero & s, Paint()..shader = sh..blendMode = pass == 0 ? BlendMode.multiply : BlendMode.plus);
+      }
+    }
+
     canvas.drawCircle(c, r - 0.5,
         Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = Colors.black.withValues(alpha: 0.45));
-    // specular highlight
+    // specular highlight (fallback when shaders are unavailable)
+    if (Gfx.gloss != null) return;
     final hl = Rect.fromLTWH(r * 0.42, r * 0.2, r * 0.7, r * 0.42);
     canvas.drawOval(
       hl,

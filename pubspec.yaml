@@ -54,6 +54,9 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+  shaders:
+    - shaders/peg.frag
+    - shaders/gloss.frag
   assets:
     - assets/sfx/
   fonts:

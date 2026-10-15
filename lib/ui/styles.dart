@@ -6,9 +6,17 @@ enum PegKind {
   wood, glass, moon, ember, crystal, star, frost, mushroom,
   soccer, basketball, tennis, baseball, billiard, golf,
   pixel, disco, vinyl, smiley, donut, planet, cookie,
+  material,
 }
 
 enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon }
+
+/// A fully shader-drawn material (see shaders/peg.frag).
+class MaterialSpec {
+  const MaterialSpec(this.mode, this.c1, this.c2, this.c3);
+  final double mode; // 0 marble, 1 glass, 2 metal, 3 lava, 4 crystal, 5 wood, 6 pearl
+  final Color c1, c2, c3;
+}
 
 class PegTheme {
   const PegTheme({
@@ -21,6 +29,8 @@ class PegTheme {
     this.glow = const Color(0xFFFFB347),
     this.glowAlpha = 0,
     this.fxColor,
+    this.shine = 0.55,
+    this.mat,
   });
   final String id;
   final String name;
@@ -31,6 +41,8 @@ class PegTheme {
   final Color glow;
   final double glowAlpha;
   final Color? fxColor;
+  final double shine; // how reflective the studio light overlay is
+  final MaterialSpec? mat;
 }
 
 const pegThemes = [
@@ -94,6 +106,30 @@ const pegThemes = [
   PegTheme(id: 'smiley', name: 'Smiley', kind: PegKind.smiley, category: 'Pop & arcade', fx: FxKind.heart,
       colors: [Color(0xFFFFF6A0), Color(0xFFFFE03A), Color(0xFFE3B410), Color(0xFF8A6A04)]),
   // ---- Space
+  // ---- Premium materials (fully shader-lit)
+  PegTheme(id: 'marble', name: 'White Marble', kind: PegKind.material, category: 'Premium materials', fx: FxKind.moon,
+      colors: [Color(0xFFF4F1EA), Color(0xFFB9B4AA), Color(0xFF6A665E), Color(0xFF2B2B33)],
+      mat: MaterialSpec(0, Color(0xFFF4F1EA), Color(0xFFB9B4AA), Color(0xFF2B2B33))),
+  PegTheme(id: 'onyx', name: 'Gilded Onyx', kind: PegKind.material, category: 'Premium materials', fx: FxKind.star,
+      colors: [Color(0xFF3A4660), Color(0xFF1A1F2B), Color(0xFF0E121A), Color(0xFF05070A)],
+      glow: Color(0xFFE6C97A), glowAlpha: 0.25,
+      mat: MaterialSpec(0, Color(0xFF1A1F2B), Color(0xFF3A4660), Color(0xFFE6C97A))),
+  PegTheme(id: 'gold', name: 'Solid Gold', kind: PegKind.material, category: 'Premium materials', fx: FxKind.star,
+      colors: [Color(0xFFFFE9A0), Color(0xFFE0A93A), Color(0xFFA06A10), Color(0xFF4A2D04)],
+      glow: Color(0xFFFFD866), glowAlpha: 0.3,
+      mat: MaterialSpec(2, Color(0xFFFFE9A0), Color(0xFFC9871A), Color(0xFF000000))),
+  PegTheme(id: 'magma', name: 'Magma Core', kind: PegKind.material, category: 'Premium materials', fx: FxKind.ember,
+      colors: [Color(0xFFFFC27A), Color(0xFFFF6A1E), Color(0xFF7A1E0C), Color(0xFF1C0F0C)],
+      glow: Color(0xFFFF5A1F), glowAlpha: 0.55,
+      mat: MaterialSpec(3, Color(0xFFFF6A1E), Color(0xFFFFC27A), Color(0xFF1C0F0C))),
+  PegTheme(id: 'amethyst', name: 'Amethyst', kind: PegKind.material, category: 'Premium materials', fx: FxKind.crystal,
+      colors: [Color(0xFFE6D4FF), Color(0xFFB48CFF), Color(0xFF6A45D8), Color(0xFF241060)],
+      glow: Color(0xFF9B7CFF), glowAlpha: 0.45,
+      mat: MaterialSpec(4, Color(0xFFB48CFF), Color(0xFF6A45D8), Color(0xFF000000))),
+  PegTheme(id: 'pearl', name: 'Opal Pearl', kind: PegKind.material, category: 'Premium materials', fx: FxKind.moon,
+      colors: [Color(0xFFFFFFFF), Color(0xFFF2F0FA), Color(0xFFC9B8E8), Color(0xFF6A6A9A)],
+      glow: Color(0xFFD7C8FF), glowAlpha: 0.3,
+      mat: MaterialSpec(6, Color(0xFFF2F0FA), Color(0xFF000000), Color(0xFF000000))),
   PegTheme(id: 'planet', name: 'Ringed Planet', kind: PegKind.planet, category: 'Space', fx: FxKind.star,
       colors: [Color(0xFFFFE9C0), Color(0xFFF3B66A), Color(0xFFC2742E), Color(0xFF6A3410)],
       glow: Color(0xFFFFC27A), glowAlpha: 0.3),

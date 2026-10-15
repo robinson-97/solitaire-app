@@ -41,6 +41,13 @@ const pegRules = <String, UnlockRule>{
   'disco': UnlockRule('combo-5', 74),
   'vinyl': UnlockRule('glitch-5', 74),
   'smiley': UnlockRule('boss-3', 75),
+  // Premium materials
+  'marble': UnlockRule('dune-3', 72),
+  'pearl': UnlockRule('tide-5', 72),
+  'amethyst': UnlockRule('zephyr-3', 74),
+  'magma': UnlockRule('obsidian-5', 74),
+  'onyx': UnlockRule('abyss-5', 76),
+  'gold': UnlockRule('gale-5', 78),
   // Nebula Drift
   'planet': UnlockRule('nebula-5', 76),
 };
