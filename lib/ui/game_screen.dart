@@ -6,6 +6,7 @@ import '../game/board_def.dart';
 import '../game/unlocks.dart';
 import '../game/worlds.dart';
 import '../game/peg_game.dart';
+import '../sfx.dart';
 import '../storage.dart';
 import 'background.dart';
 import 'peg_view.dart';
@@ -156,7 +157,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   _Hop? hop;
 
   late final AnimationController _hopC =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 520), value: 1);
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 640), value: 1);
   late final AnimationController _glowC =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
 
@@ -218,10 +219,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           final moves = game.movesFrom(p);
           if (moves.isEmpty) {
             _shake(p);
+            Sfx.play('invalid');
             HapticFeedback.heavyImpact();
           } else {
             selected = p;
             targets = moves;
+            Sfx.play('select');
             _buzz();
           }
         }
@@ -231,6 +234,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           _jump(m);
         } else {
           _shake(selected!);
+          Sfx.play('invalid');
         }
       }
     });
@@ -254,7 +258,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     hist.add(_Rec(m, movedId, removedId));
     selected = null;
     targets = [];
-    Timer(const Duration(milliseconds: 440), _landBuzz);
+    Sfx.play('jump');
+    Timer(const Duration(milliseconds: 500), _landBuzz);
     if (game.isOver) _finish();
   }
 
@@ -272,6 +277,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ids[r.move.over] = r.removedId;
       ghosts.remove(r.removedId);
       _startHop(r.movedId, r.move.to, r.move.from);
+      Sfx.play('undo');
       selected = null;
       targets = [];
       confirmRestart = false;
@@ -312,6 +318,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     await Future.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
+    Sfx.play(cleared ? 'win' : 'end');
+    if (unlocked.isNotEmpty) Future.delayed(const Duration(milliseconds: 1300), () => Sfx.play('unlock'));
     _showResult(score, isBest, unlocked, cleared, stars);
   }
 
@@ -454,22 +462,63 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool get _hopping => hop != null && _hopC.value < 1;
 
+  static const _arcEnd = 0.78;
+
+  /// Where a hopping peg is at animation time [t]: how far along the ground
+  /// (0..1), height above the board, and squash & stretch.
+  ({double move, double lift, double sx, double sy}) _pose(double t, double cell) {
+    if (t < _arcEnd) {
+      final u = t / _arcEnd;
+      final crouch = u < 0.14 ? 0.12 * (1 - u / 0.14) : 0.0;
+      final sy = 1 - crouch + 0.14 * sin(pi * u);
+      return (
+        move: Curves.easeInOut.transform(u),
+        lift: 4 * u * (1 - u) * cell * 1.25,
+        sx: 1 / sy,
+        sy: sy,
+      );
+    }
+    final v = (t - _arcEnd) / (1 - _arcEnd);
+    final squash = v < 0.4 ? 0.2 * sin(pi * v / 0.4) : 0.0;
+    final bounce = v < 0.4 ? 0.0 : sin(pi * (v - 0.4) / 0.6) * cell * 0.18;
+    final sy = 1 - squash;
+    return (move: 1.0, lift: bounce, sx: 1 / sy, sy: sy);
+  }
+
+  bool _isHopper(int id) => hop != null && hop!.id == id && _hopC.value < 1;
+
   /// Flat (board-plane) position of a peg, including a hop in progress.
   Offset _flatPos(TiltedBoard tb, int id, Pos p) {
-    final h = hop;
-    if (h != null && h.id == id && _hopC.value < 1) {
-      final t = Curves.easeInOut.transform(_hopC.value);
-      return Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), t)!;
+    if (_isHopper(id)) {
+      final m = _pose(_hopC.value, tb.cell).move;
+      return Offset.lerp(tb.flat.centerOf(hop!.from), tb.flat.centerOf(hop!.to), m)!;
     }
     return tb.flat.centerOf(p);
   }
 
-  double _hopHeight(TiltedBoard tb, int id) {
-    final h = hop;
-    if (h != null && h.id == id && _hopC.value < 1) {
-      return sin(pi * _hopC.value) * tb.cell * 1.15;
+  double _hopHeight(TiltedBoard tb, int id) => _isHopper(id) ? _pose(_hopC.value, tb.cell).lift : 0;
+
+  /// Sparkle trail behind the flying peg and a ripple where it lands.
+  _HopFx _hopFx(TiltedBoard tb, PegTheme pt) {
+    final h = hop!;
+    final t = _hopC.value;
+    final color = pt.glowAlpha > 0 ? pt.glow : lantern;
+    final trail = <(Offset, double, double)>[]; // position, radius, alpha
+    if (t < _arcEnd) {
+      for (var k = 1; k <= 7; k++) {
+        final tt = t - k * 0.028;
+        if (tt <= 0) continue;
+        final pose = _pose(tt, tb.cell);
+        final flat = Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), pose.move)!;
+        final d = tb.pegSize(tb.scaleAtFlat(flat));
+        final pos = tb.project(flat) - Offset(0, d * 0.32 + pose.lift);
+        final f = 1 - k / 8;
+        trail.add((pos, d * 0.2 * f, 0.55 * f));
+      }
     }
-    return 0;
+    double? ring;
+    if (t >= _arcEnd) ring = (t - _arcEnd) / (1 - _arcEnd);
+    return _HopFx(color, trail, ring == null ? null : tb.centerOf(h.to), ring ?? 0, tb.scaleOf(h.to));
   }
 
   Widget _scene(TiltedBoard tb, PegTheme pt, BoardTheme bt, bool still) {
@@ -499,6 +548,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
+      if (_hopping && !still)
+        Positioned.fill(child: CustomPaint(painter: _HopFxPainter(tb, _hopFx(tb, pt)))),
       for (final e in entries) _peg(tb, pt, e.id, e.pos, e.flat, e.screen, glow, still),
       for (final g in ghosts.entries) _ghost(tb, pt, g.key, g.value, glow, still),
     ]);
@@ -531,10 +582,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: AnimatedSlide(
             offset: sel ? const Offset(0, -0.16) : Offset.zero,
             duration: quick,
-            child: AnimatedScale(
-              scale: sel ? 1.1 : 1 + 0.12 * sin(pi * (_hopping && hop!.id == id ? _hopC.value : 0)),
-              duration: _hopping && hop!.id == id ? Duration.zero : quick,
-              child: PegView(theme: pt, glow: (glow + id * 0.13) % 1, selected: sel),
+            child: Transform.scale(
+              scaleX: _isHopper(id) ? _pose(_hopC.value, tb.cell).sx : 1,
+              scaleY: _isHopper(id) ? _pose(_hopC.value, tb.cell).sy : 1,
+              alignment: Alignment.bottomCenter,
+              child: AnimatedScale(
+                scale: sel ? 1.1 : 1,
+                duration: quick,
+                child: PegView(theme: pt, glow: (glow + id * 0.13) % 1, selected: sel),
+              ),
             ),
           ),
         ),
@@ -595,6 +651,44 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+class _HopFx {
+  _HopFx(this.color, this.trail, this.landing, this.ring, this.scale);
+  final Color color;
+  final List<(Offset, double, double)> trail;
+  final Offset? landing;
+  final double ring;
+  final double scale;
+}
+
+class _HopFxPainter extends CustomPainter {
+  _HopFxPainter(this.tb, this.fx);
+  final TiltedBoard tb;
+  final _HopFx fx;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final (pos, r, a) in fx.trail) {
+      canvas.drawCircle(pos, r * 1.8, Paint()..color = fx.color.withValues(alpha: a * 0.35)..maskFilter = MaskFilter.blur(BlurStyle.normal, r));
+      canvas.drawCircle(pos, r * 0.55, Paint()..color = Colors.white.withValues(alpha: a));
+    }
+    final c = fx.landing;
+    if (c != null) {
+      for (var k = 0; k < 2; k++) {
+        final v = (fx.ring - k * 0.18).clamp(0.0, 1.0);
+        if (v <= 0) continue;
+        final w = tb.cell * fx.scale * (0.7 + 1.5 * v);
+        canvas.drawOval(
+          Rect.fromCenter(center: c, width: w, height: w * 0.45),
+          Paint()..style = PaintingStyle.stroke..strokeWidth = 2.4 * (1 - v) + 0.5..color = Colors.white.withValues(alpha: (1 - v) * 0.7),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HopFxPainter old) => true;
 }
 
 class _ShadowPainter extends CustomPainter {

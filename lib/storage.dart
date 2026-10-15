@@ -33,6 +33,9 @@ class Storage {
   bool get seenIntro => _prefs.getBool('seen_intro') ?? false;
   Future<void> setSeenIntro() => _prefs.setBool('seen_intro', true);
 
+  bool get sound => _prefs.getBool('sound') ?? true;
+  Future<void> setSound(bool v) => _prefs.setBool('sound', v);
+
   bool get haptics => _prefs.getBool('haptics') ?? true;
   Future<void> setHaptics(bool v) => _prefs.setBool('haptics', v);
 

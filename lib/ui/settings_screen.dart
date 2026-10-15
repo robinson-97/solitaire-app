@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../sfx.dart';
 import '../storage.dart';
 import 'how_to_play.dart';
 import 'theme.dart';
@@ -50,6 +51,23 @@ class _SettingsPageState extends State<SettingsPage> {
               value: widget.storage.haptics,
               onChanged: (v) async {
                 await widget.storage.setHaptics(v);
+                setState(() {});
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: lantern,
+              title: const Text('Sound effects', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('Soft sounds for jumps, undo and unlocks.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
+              value: widget.storage.sound,
+              onChanged: (v) async {
+                await widget.storage.setSound(v);
+                Sfx.enabled = v;
+                if (v) Sfx.play('select');
                 setState(() {});
               },
             ),
