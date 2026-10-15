@@ -59,8 +59,26 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         const SizedBox(height: 16),
         LayoutBuilder(builder: (context, box) {
           final w = (box.maxWidth - 12) / 2;
+          if (tab == 0) {
+            final cats = <String>[];
+            for (final t in pegThemes) {
+              if (!cats.contains(t.category)) cats.add(t.category);
+            }
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final cat in cats) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 10),
+                  child: Text(cat, style: displayFont.copyWith(fontSize: 17)),
+                ),
+                Wrap(spacing: 12, runSpacing: 12, children: [
+                  for (final t in pegThemes.where((t) => t.category == cat)) SizedBox(width: w, child: _pegCard(t, u)),
+                ]),
+                const SizedBox(height: 14),
+              ],
+            ]);
+          }
           final cards = switch (tab) {
-            0 => [for (final t in pegThemes) _pegCard(t, u)],
+            0 => const <Widget>[],
             1 => [for (final t in boardThemes) _boardCard(t, u)],
             _ => [for (final wd in worlds) _worldCard(wd, u)],
           };

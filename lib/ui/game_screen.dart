@@ -514,7 +514,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   double _hopHeight(TiltedBoard tb, int id) => _isHopper(id) ? _pose(_hopC.value, tb.cell).lift : 0;
 
-  Color _fxColor(PegTheme pt) => pt.glowAlpha > 0 ? pt.glow : lantern;
+  Color _fxColor(PegTheme pt) => pt.fxColor ?? (pt.glowAlpha > 0 ? pt.glow : lantern);
 
   /// Positions of the sparkle trail behind the flying peg.
   List<(Offset, double, double)> _trailPoints(TiltedBoard tb) {
@@ -804,7 +804,30 @@ class _BoardPainter extends CustomPainter {
     );
     canvas.save();
     canvas.clipPath(wood);
-    if (theme.kind != BoardKind.wood) {
+    if (theme.kind == BoardKind.pitch) {
+      // mown stripes and white pitch markings
+      for (var i = 0; i < 14; i++) {
+        if (i.isEven) {
+          canvas.drawRect(Rect.fromLTWH(bounds.left + i * bounds.width / 14, bounds.top, bounds.width / 14, bounds.height), Paint()..color = Colors.white.withValues(alpha: 0.07));
+        }
+      }
+      final line = Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = Colors.white.withValues(alpha: 0.55);
+      canvas.drawCircle(bounds.center, cell * 1.3, line);
+      canvas.drawLine(Offset(bounds.left, bounds.center.dy), Offset(bounds.right, bounds.center.dy), line);
+      canvas.drawCircle(bounds.center, 3, Paint()..color = Colors.white.withValues(alpha: 0.6));
+    } else if (theme.kind == BoardKind.neon) {
+      // glowing synthwave grid
+      final cyan = theme.accent.withValues(alpha: 0.18 + 0.1 * pulse);
+      final gl = Paint()..color = cyan..strokeWidth = 4..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+      final ln = Paint()..color = theme.accent.withValues(alpha: 0.5)..strokeWidth = 1;
+      for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
+        canvas.drawLine(Offset(x, bounds.top), Offset(x, bounds.bottom), gl);
+        canvas.drawLine(Offset(x, bounds.top), Offset(x, bounds.bottom), ln);
+      }
+      for (var y = bounds.top; y <= bounds.bottom; y += cell * 0.5) {
+        canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y), Paint()..color = theme.grain.withValues(alpha: 0.2 + 0.1 * pulse)..strokeWidth = 1);
+      }
+    } else if (theme.kind != BoardKind.wood) {
       final rnd = Random(3);
       for (var i = 0; i < 260; i++) {
         final o = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
@@ -870,7 +893,7 @@ class _BoardPainter extends CustomPainter {
     canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
     canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.white.withValues(alpha: 0.3));
     // moss
-    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : theme.kind == BoardKind.pitch || theme.kind == BoardKind.neon ? 0.0 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     final mossSpots = theme.kind == BoardKind.stone ? 7 : theme.kind == BoardKind.wood ? 3 : 4;
     final mr = Random(8);
     for (var i = 0; i < mossSpots; i++) {

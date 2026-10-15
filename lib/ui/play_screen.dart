@@ -20,13 +20,13 @@ class PlayPage extends StatefulWidget {
 class _PlayPageState extends State<PlayPage> {
   late int idx = _startWorld();
 
+  /// The first world that still has levels to clear (or the last one).
   int _startWorld() {
     final u = Unlocks(widget.storage);
-    var best = 0;
     for (var i = 0; i < worlds.length; i++) {
-      if (u.worldUnlocked(worlds[i])) best = i;
+      if (u.worldUnlocked(worlds[i]) && !u.worldCompleted(worlds[i])) return i;
     }
-    return best;
+    return worlds.length - 1;
   }
 
   @override

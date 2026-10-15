@@ -1,6 +1,7 @@
 // Generates solvable handmade levels by playing backwards from one peg.
 // Run: dart run tool/gen_levels.dart > lib/game/levels_data.dart
 // ignore_for_file: avoid_print
+import 'dart:io';
 import 'dart:math';
 import 'package:hopstone/game/board_def.dart';
 
@@ -31,19 +32,64 @@ void main() {
   print('// Each entry is a start position (row, col) that can be cleared to one peg.');
   print("import 'board_def.dart';\n");
   print('final List<BoardDef> handmadeLevels = [');
+  const E = BoardShape.english, F = BoardShape.french, T = BoardShape.triangle;
+  const easy = Difficulty.easy, med = Difficulty.medium, hard = Difficulty.hard, exp = Difficulty.expert;
   final packs = [
-    ('seedling', 'Seedling', Difficulty.easy, BoardShape.english, [4, 5, 6, 7, 8]),
-    ('sprout', 'Sprout', Difficulty.easy, BoardShape.english, [9, 10, 11, 12, 13]),
-    ('sapling', 'Sapling', Difficulty.medium, BoardShape.english, [14, 15, 16, 17, 18]),
-    ('grove', 'Grove', Difficulty.medium, BoardShape.english, [19, 20, 21, 22, 23]),
-    ('geode', 'Geode', Difficulty.medium, BoardShape.triangle, [5, 6, 7, 8, 9]),
-    ('facet', 'Facet', Difficulty.medium, BoardShape.french, [10, 12, 14, 16, 18]),
-    ('prism', 'Prism', Difficulty.hard, BoardShape.english, [20, 21, 22, 23, 24]),
-    ('lumen', 'Lumen', Difficulty.hard, BoardShape.french, [20, 22, 24, 26, 28]),
-    ('comet', 'Comet', Difficulty.hard, BoardShape.english, [22, 23, 24, 25, 26]),
-    ('nova', 'Nova', Difficulty.hard, BoardShape.french, [24, 25, 26, 27, 28]),
-    ('meteor', 'Meteor', Difficulty.expert, BoardShape.english, [26, 27, 28, 28, 28]),
-    ('aurora', 'Aurora', Difficulty.expert, BoardShape.french, [28, 29, 30, 30, 30]),
+    // World 1 - Glimmerwood
+    ('seedling', 'Seedling', easy, E, [4, 5, 6, 7, 8]),
+    ('sprout', 'Sprout', easy, E, [9, 10, 11, 12, 13]),
+    ('sapling', 'Sapling', med, E, [14, 15, 16, 17, 18]),
+    ('grove', 'Grove', med, E, [19, 20, 21, 22, 23]),
+    // World 2 - Crystal Cavern
+    ('geode', 'Geode', med, T, [5, 6, 7, 8, 9]),
+    ('facet', 'Facet', med, F, [10, 12, 14, 16, 18]),
+    ('prism', 'Prism', hard, E, [20, 21, 22, 23, 24]),
+    ('lumen', 'Lumen', hard, F, [20, 22, 24, 26, 28]),
+    // World 3 - Starfall Peak
+    ('comet', 'Comet', hard, E, [22, 23, 24, 25, 26]),
+    ('nova', 'Nova', hard, F, [24, 25, 26, 27, 28]),
+    ('meteor', 'Meteor', exp, E, [26, 27, 28, 28, 28]),
+    ('aurora', 'Aurora', exp, F, [28, 29, 30, 30, 30]),
+    // World 4 - Sunbaked Dunes
+    ('dune', 'Dune', easy, BoardShape.square, [6, 8, 10, 12, 14]),
+    ('oasis', 'Oasis', easy, BoardShape.diamond, [7, 9, 11, 13, 15]),
+    ('mirage', 'Mirage', med, BoardShape.hourglass, [10, 12, 14, 16, 18]),
+    ('pharaoh', 'Pharaoh', med, BoardShape.arrow, [10, 12, 14, 16, 17]),
+    // World 5 - Coral Deep
+    ('tide', 'Tide', med, BoardShape.ring, [12, 15, 18, 21, 24]),
+    ('reef', 'Reef', med, BoardShape.heart, [10, 12, 14, 16, 18]),
+    ('kelp', 'Kelp', med, BoardShape.tee, [10, 12, 14, 16, 18]),
+    ('abyss', 'Abyss', hard, BoardShape.stairs, [10, 12, 13, 14, 15]),
+    // World 6 - Ember Crater
+    ('magma', 'Magma', hard, E, [16, 18, 20, 22, 24]),
+    ('ash', 'Ash', hard, F, [18, 20, 22, 24, 26]),
+    ('obsidian', 'Obsidian', hard, BoardShape.ring, [20, 22, 24, 26, 28]),
+    ('cinder', 'Cinder', hard, BoardShape.diamond, [14, 16, 17, 18, 19]),
+    // World 7 - Frostwind Tundra
+    ('flurry', 'Flurry', hard, BoardShape.hourglass, [16, 18, 20, 22, 24]),
+    ('drift', 'Drift', hard, BoardShape.heart, [14, 16, 18, 19, 20]),
+    ('glacier', 'Glacier', hard, BoardShape.square, [14, 16, 17, 18, 19]),
+    ('icicle', 'Icicle', hard, BoardShape.tee, [14, 16, 17, 18, 19]),
+    // World 8 - Sky Gardens
+    ('cloud', 'Cloud', med, T, [6, 7, 8, 9, 10]),
+    ('breeze', 'Breeze', hard, BoardShape.arrow, [14, 16, 18, 19, 20]),
+    ('zephyr', 'Zephyr', hard, BoardShape.stairs, [12, 14, 15, 16, 17]),
+    ('gale', 'Gale', hard, E, [18, 20, 22, 24, 26]),
+    // World 9 - Stadium Nights
+    ('kickoff', 'Kickoff', hard, E, [20, 22, 24, 26, 27]),
+    ('dribble', 'Dribble', hard, F, [22, 24, 26, 28, 29]),
+    ('slam', 'Slam', exp, BoardShape.ring, [24, 26, 28, 30, 31]),
+    ('final', 'Final', exp, BoardShape.hourglass, [20, 22, 24, 26, 27]),
+    // World 10 - Neon Arcade
+    ('pixel', 'Pixel', hard, BoardShape.square, [12, 14, 16, 18, 20]),
+    ('combo', 'Combo', hard, BoardShape.diamond, [14, 16, 18, 19, 20]),
+    ('glitch', 'Glitch', exp, BoardShape.heart, [16, 18, 20, 22, 23]),
+    ('boss', 'Boss', exp, F, [26, 28, 29, 30, 30]),
+    // World 11 - Nebula Drift
+    ('nebula', 'Nebula', exp, E, [24, 26, 28, 29, 30]),
+    ('pulsar', 'Pulsar', exp, F, [28, 29, 30, 31, 31]),
+    ('quasar', 'Quasar', exp, BoardShape.ring, [28, 30, 32, 33, 34]),
+    ('zenith', 'Zenith', exp, BoardShape.hourglass, [24, 26, 27, 28, 28]),
   ];
   for (final (id, name, d, shape, counts) in packs) {
     final holes = shapeHoles(shape);
@@ -51,8 +97,15 @@ void main() {
     for (var i = 0; i < counts.length; i++) {
       final rnd = Random(1000 * counts[i] + 7 + shape.index + i * 131 + id.codeUnits.fold(0, (a, b) => a + b));
       List<Pos>? res;
-      for (var tries = 0; res == null && tries < 5000; tries++) {
-        res = generate(holes, dirs, counts[i], rnd);
+      var want = counts[i];
+      while (res == null && want > 3) {
+        for (var tries = 0; res == null && tries < 3000; tries++) {
+          res = generate(holes, dirs, want, rnd);
+        }
+        if (res == null) {
+          stderr.writeln('$id ${i + 1}: $want pegs not reachable, trying ${want - 1}');
+          want--;
+        }
       }
       if (res == null) throw StateError('cannot build $id ${i + 1}');
       final lit = res.map((p) => '(${p.row}, ${p.col})').join(', ');

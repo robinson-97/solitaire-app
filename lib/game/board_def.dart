@@ -130,7 +130,25 @@ final BoardDef triangleBoard = () {
   );
 }();
 
-enum BoardShape { english, french, triangle }
+enum BoardShape {
+  english,
+  french,
+  triangle,
+  square,
+  diamond,
+  ring,
+  heart,
+  hourglass,
+  arrow,
+  tee,
+  stairs,
+}
+
+Set<Pos> _ascii(List<String> rows) => {
+      for (var r = 0; r < rows.length; r++)
+        for (var c = 0; c < rows[r].length; c++)
+          if (rows[r][c] == '#') Pos(r, c),
+    };
 
 final Set<Pos> frenchHoles = _grid(7, (r, c) => _frenchShape(r, c));
 final Set<Pos> triangleHoles = {
@@ -138,11 +156,21 @@ final Set<Pos> triangleHoles = {
     for (var c = 0; c <= r; c++) Pos(r, c),
 };
 
-Set<Pos> shapeHoles(BoardShape s) => switch (s) {
-      BoardShape.english => englishHoles,
-      BoardShape.french => frenchHoles,
-      BoardShape.triangle => triangleHoles,
-    };
+final Map<BoardShape, Set<Pos>> _shapes = {
+  BoardShape.english: englishHoles,
+  BoardShape.french: frenchHoles,
+  BoardShape.triangle: triangleHoles,
+  BoardShape.square: _grid(5, (r, c) => true),
+  BoardShape.diamond: _grid(7, (r, c) => (r - 3).abs() + (c - 3).abs() <= 3),
+  BoardShape.ring: _ascii(['#######', '#######', '##...##', '##...##', '##...##', '#######', '#######']),
+  BoardShape.heart: _ascii(['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...']),
+  BoardShape.hourglass: _ascii(['#######', '.#####.', '..###..', '...#...', '..###..', '.#####.', '#######']),
+  BoardShape.arrow: _ascii(['...#...', '..###..', '.#####.', '#######', '..###..', '..###..', '..###..']),
+  BoardShape.tee: _ascii(['#######', '#######', '..###..', '..###..', '..###..', '..###..']),
+  BoardShape.stairs: _ascii(['#.....', '##....', '###...', '####..', '#####.', '######']),
+};
+
+Set<Pos> shapeHoles(BoardShape s) => _shapes[s]!;
 
 /// Handmade puzzles, built backwards from one peg so each one is guaranteed
 /// solvable (see tool/gen_levels.dart).

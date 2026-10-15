@@ -1,49 +1,102 @@
 import 'package:flutter/material.dart';
 import 'fx.dart';
 
-/// Peg and board looks. Unlock rules come with the Collection screen; for now
-/// everything is selectable so the looks can be tested.
-enum PegKind { wood, glass, moon, ember, crystal, star, frost, mushroom }
-enum BoardKind { wood, stone, marble, crystal, rune, lava }
+/// Peg and board looks. Which ones are unlocked is decided in unlocks.dart.
+enum PegKind {
+  wood, glass, moon, ember, crystal, star, frost, mushroom,
+  soccer, basketball, tennis, baseball, billiard, golf,
+  pixel, disco, vinyl, smiley, donut, planet, cookie,
+}
+
+enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon }
 
 class PegTheme {
-  const PegTheme(this.id, this.name, this.kind, this.colors, this.glow,
-      this.glowAlpha, this.requirement, this.fx);
+  const PegTheme({
+    required this.id,
+    required this.name,
+    required this.kind,
+    required this.colors,
+    required this.fx,
+    required this.category,
+    this.glow = const Color(0xFFFFB347),
+    this.glowAlpha = 0,
+    this.fxColor,
+  });
   final String id;
   final String name;
   final PegKind kind;
   final List<Color> colors; // highlight -> shadow
+  final FxKind fx; // hop trail and landing effect
+  final String category;
   final Color glow;
   final double glowAlpha;
-  final String requirement;
-  final FxKind fx; // hop trail and landing effect
+  final Color? fxColor;
 }
 
 const pegThemes = [
-  PegTheme('acorn', 'Acorn Wood', PegKind.wood,
-      [Color(0xFFFFE3A8), Color(0xFFE9A04A), Color(0xFFA85F1E), Color(0xFF4A230A)],
-      Color(0xFFFFB347), 0.0, 'Start', FxKind.none),
-  PegTheme('firefly', 'Firefly Glass', PegKind.glass,
-      [Color(0xFFEFFFD0), Color(0xFF8CF0A8), Color(0xFF1E9A78), Color(0xFF0B4A3A)],
-      Color(0xFFB6FF6A), 0.55, 'Score 400 on Sprout 5', FxKind.firefly),
-  PegTheme('geode', 'Geode Crystal', PegKind.crystal,
-      [Color(0xFFF4E6FF), Color(0xFFB48CFF), Color(0xFF5B3FC4), Color(0xFF1C0F55)],
-      Color(0xFF8E7CFF), 0.55, 'Score 450 on Facet 5', FxKind.crystal),
-  PegTheme('moonstone', 'Moonstone', PegKind.moon,
-      [Color(0xFFFFFFFF), Color(0xFFDDE8FF), Color(0xFF93A8E6), Color(0xFF47579A)],
-      Color(0xFF9DB9FF), 0.4, 'Score 450 on Sapling 5', FxKind.moon),
-  PegTheme('ember', 'Ember Crystal', PegKind.ember,
-      [Color(0xFFFFF0A0), Color(0xFFFF9A2E), Color(0xFFD4380D), Color(0xFF5A0F05)],
-      Color(0xFFFF5A1F), 0.6, 'Score 500 on Prism 5', FxKind.ember),
-  PegTheme('starlight', 'Starlight Gold', PegKind.star,
-      [Color(0xFFFFFBDC), Color(0xFFFFD866), Color(0xFFC9871A), Color(0xFF5E3A06)],
-      Color(0xFFFFE27A), 0.6, 'Score 600 on Comet 5', FxKind.star),
-  PegTheme('frost', 'Frost Pearl', PegKind.frost,
-      [Color(0xFFFFFFFF), Color(0xFFD2F0FF), Color(0xFF7FC4EA), Color(0xFF2D6EA3)],
-      Color(0xFF9BE3FF), 0.45, 'Score 520 on Nova 5', FxKind.frost),
-  PegTheme('mushroom', 'Mushroom', PegKind.mushroom,
-      [Color(0xFFFFF6E0), Color(0xFFF2D9B0), Color(0xFFC79A62), Color(0xFF6E4423)],
-      Color(0xFFE6F0B0), 0.0, 'Score 450 on Grove 5', FxKind.spore),
+  // ---- Nature & magic
+  PegTheme(id: 'acorn', name: 'Acorn Wood', kind: PegKind.wood, category: 'Nature & magic', fx: FxKind.none,
+      colors: [Color(0xFFFFE3A8), Color(0xFFE9A04A), Color(0xFFA85F1E), Color(0xFF4A230A)]),
+  PegTheme(id: 'firefly', name: 'Firefly Glass', kind: PegKind.glass, category: 'Nature & magic', fx: FxKind.firefly,
+      colors: [Color(0xFFEFFFD0), Color(0xFF8CF0A8), Color(0xFF1E9A78), Color(0xFF0B4A3A)],
+      glow: Color(0xFFB6FF6A), glowAlpha: 0.55),
+  PegTheme(id: 'moonstone', name: 'Moonstone', kind: PegKind.moon, category: 'Nature & magic', fx: FxKind.moon,
+      colors: [Color(0xFFFFFFFF), Color(0xFFDDE8FF), Color(0xFF93A8E6), Color(0xFF47579A)],
+      glow: Color(0xFF9DB9FF), glowAlpha: 0.4),
+  PegTheme(id: 'mushroom', name: 'Mushroom', kind: PegKind.mushroom, category: 'Nature & magic', fx: FxKind.puff,
+      colors: [Color(0xFFFFF6E0), Color(0xFFF2D9B0), Color(0xFFC79A62), Color(0xFF6E4423)],
+      fxColor: Color(0xFFE6F0B0)),
+  PegTheme(id: 'geode', name: 'Geode Crystal', kind: PegKind.crystal, category: 'Nature & magic', fx: FxKind.crystal,
+      colors: [Color(0xFFF4E6FF), Color(0xFFB48CFF), Color(0xFF5B3FC4), Color(0xFF1C0F55)],
+      glow: Color(0xFF8E7CFF), glowAlpha: 0.55),
+  PegTheme(id: 'ember', name: 'Ember Crystal', kind: PegKind.ember, category: 'Nature & magic', fx: FxKind.ember,
+      colors: [Color(0xFFFFF0A0), Color(0xFFFF9A2E), Color(0xFFD4380D), Color(0xFF5A0F05)],
+      glow: Color(0xFFFF5A1F), glowAlpha: 0.6),
+  PegTheme(id: 'starlight', name: 'Starlight Gold', kind: PegKind.star, category: 'Nature & magic', fx: FxKind.star,
+      colors: [Color(0xFFFFFBDC), Color(0xFFFFD866), Color(0xFFC9871A), Color(0xFF5E3A06)],
+      glow: Color(0xFFFFE27A), glowAlpha: 0.6),
+  PegTheme(id: 'frost', name: 'Frost Pearl', kind: PegKind.frost, category: 'Nature & magic', fx: FxKind.frost,
+      colors: [Color(0xFFFFFFFF), Color(0xFFD2F0FF), Color(0xFF7FC4EA), Color(0xFF2D6EA3)],
+      glow: Color(0xFF9BE3FF), glowAlpha: 0.45),
+  // ---- Sweet
+  PegTheme(id: 'cookie', name: 'Choc Chip Cookie', kind: PegKind.cookie, category: 'Sweet treats', fx: FxKind.crumbs,
+      colors: [Color(0xFFF6D9A0), Color(0xFFDDB070), Color(0xFFB07A3A), Color(0xFF5E3A14)],
+      fxColor: Color(0xFFB07A3A)),
+  PegTheme(id: 'donut', name: 'Sprinkle Donut', kind: PegKind.donut, category: 'Sweet treats', fx: FxKind.sprinkles,
+      colors: [Color(0xFFF7DDB0), Color(0xFFE0AA68), Color(0xFFB07A3A), Color(0xFF5E3A14)]),
+  // ---- Sports
+  PegTheme(id: 'soccer', name: 'Soccer Ball', kind: PegKind.soccer, category: 'Sports', fx: FxKind.confetti,
+      colors: [Color(0xFFFFFFFF), Color(0xFFF2F2F2), Color(0xFFC9C9C9), Color(0xFF8A8A8A)]),
+  PegTheme(id: 'basketball', name: 'Basketball', kind: PegKind.basketball, category: 'Sports', fx: FxKind.puff,
+      colors: [Color(0xFFFFB070), Color(0xFFF07F2A), Color(0xFFC25A12), Color(0xFF6A2E08)],
+      fxColor: Color(0xFFFF9A4A)),
+  PegTheme(id: 'tennis', name: 'Tennis Ball', kind: PegKind.tennis, category: 'Sports', fx: FxKind.puff,
+      colors: [Color(0xFFF6FF8A), Color(0xFFD6EC38), Color(0xFF9DBA1A), Color(0xFF566A06)],
+      fxColor: Color(0xFFE2F06A)),
+  PegTheme(id: 'baseball', name: 'Baseball', kind: PegKind.baseball, category: 'Sports', fx: FxKind.dust,
+      colors: [Color(0xFFFFFFFF), Color(0xFFF3EFE6), Color(0xFFC9C2B0), Color(0xFF8A8270)]),
+  PegTheme(id: 'billiard', name: '8-Ball', kind: PegKind.billiard, category: 'Sports', fx: FxKind.puff,
+      colors: [Color(0xFF6A6A72), Color(0xFF2A2A30), Color(0xFF111116), Color(0xFF000000)],
+      fxColor: Color(0xFF7FB6FF)),
+  PegTheme(id: 'golf', name: 'Golf Ball', kind: PegKind.golf, category: 'Sports', fx: FxKind.puff,
+      colors: [Color(0xFFFFFFFF), Color(0xFFF4F7FA), Color(0xFFCBD3DB), Color(0xFF8E99A4)],
+      fxColor: Color(0xFFF2F2F2)),
+  // ---- Pop & arcade
+  PegTheme(id: 'pixel', name: 'Pixel Coin', kind: PegKind.pixel, category: 'Pop & arcade', fx: FxKind.pixel,
+      colors: [Color(0xFFFFF1A0), Color(0xFFFFD23A), Color(0xFFD79A0E), Color(0xFF7A4D03)],
+      glow: Color(0xFFFFD23A), glowAlpha: 0.35),
+  PegTheme(id: 'disco', name: 'Disco Ball', kind: PegKind.disco, category: 'Pop & arcade', fx: FxKind.confetti,
+      colors: [Color(0xFFFFFFFF), Color(0xFFD6DCE8), Color(0xFF9AA4BA), Color(0xFF4A526A)],
+      glow: Color(0xFFFF6AD5), glowAlpha: 0.4),
+  PegTheme(id: 'vinyl', name: 'Vinyl Record', kind: PegKind.vinyl, category: 'Pop & arcade', fx: FxKind.note,
+      colors: [Color(0xFF4A4A52), Color(0xFF24242A), Color(0xFF111114), Color(0xFF050507)],
+      fxColor: Color(0xFFFF8AD0)),
+  PegTheme(id: 'smiley', name: 'Smiley', kind: PegKind.smiley, category: 'Pop & arcade', fx: FxKind.heart,
+      colors: [Color(0xFFFFF6A0), Color(0xFFFFE03A), Color(0xFFE3B410), Color(0xFF8A6A04)]),
+  // ---- Space
+  PegTheme(id: 'planet', name: 'Ringed Planet', kind: PegKind.planet, category: 'Space', fx: FxKind.star,
+      colors: [Color(0xFFFFE9C0), Color(0xFFF3B66A), Color(0xFFC2742E), Color(0xFF6A3410)],
+      glow: Color(0xFFFFC27A), glowAlpha: 0.3),
 ];
 
 PegTheme pegThemeById(String id) =>
@@ -61,7 +114,7 @@ class BoardTheme {
   final Color holeInner;
   final Color holeOuter;
   final Color moss;
-  final Color accent; // glow for veins / crystals
+  final Color accent; // glow for veins / crystals / lines
 }
 
 const boardThemes = [
@@ -89,6 +142,14 @@ const boardThemes = [
       [Color(0xFFEAF1FA), Color(0xFFBFCCE0), Color(0xFF8798B5)],
       Color(0xFF5D6C88), Color(0xFF5B79B0), Color(0xFF6C7EA0), Color(0xFF26324A),
       Color(0xFFB8E6FF), Color(0xFFBFE6FF)),
+  BoardTheme('pitch', 'Match Pitch', BoardKind.pitch,
+      [Color(0xFF4FAE4A), Color(0xFF3B9440), Color(0xFF2A7030)],
+      Color(0xFF184A1E), Color(0xFFFFFFFF), Color(0xFF1F5A24), Color(0xFF0F3414),
+      Color(0xFF2E7A33), Color(0xFFFFFFFF)),
+  BoardTheme('neon', 'Neon Grid', BoardKind.neon,
+      [Color(0xFF241A5A), Color(0xFF160F3C), Color(0xFF0A0722)],
+      Color(0xFF050313), Color(0xFFFF3DB4), Color(0xFF120A33), Color(0xFF05030F),
+      Color(0xFF2B1F7A), Color(0xFF35F0FF)),
 ];
 
 BoardTheme boardThemeById(String id) =>

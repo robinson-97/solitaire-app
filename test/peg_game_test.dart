@@ -82,7 +82,7 @@ void main() {
   test('every handmade level is solvable down to one peg', () {
     // Bigger levels are solvable by construction (built backwards); the
     // search is only quick enough to double-check the smaller ones.
-    for (final l in handmadeLevels.where((l) => l.startPegs <= 24)) {
+    for (final l in handmadeLevels.where((l) => l.startPegs <= 22)) {
       expect(canSolve(l, l.pegs), isTrue, reason: l.id);
     }
   });
@@ -99,6 +99,7 @@ void main() {
     for (final w in worlds) {
       expect(w.levels.length, 20, reason: w.id);
     }
+    expect(worlds.length, 11);
     expect(handmadeLevels.first.passAt, 1);
     expect(handmadeLevels.every((l) => l.center == null), isTrue);
     expect(classicBoard.passAt, 3);

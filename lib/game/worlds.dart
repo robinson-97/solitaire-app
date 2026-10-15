@@ -1,7 +1,7 @@
 import 'board_def.dart';
 import 'levels_data.dart';
 
-enum WorldScene { forest, cavern, peak }
+enum WorldScene { forest, cavern, peak, desert, ocean, volcano, tundra, sky, stadium, neon, nebula }
 
 class World {
   const World({
@@ -57,6 +57,78 @@ final List<World> worlds = [
     levelPacks: const ['comet', 'nova', 'meteor', 'aurora'],
     challenges: const [],
     unlockedBy: 'cavern',
+  ),
+  World(
+    id: 'dunes',
+    name: 'Sunbaked Dunes',
+    tagline: 'Golden sands and a sky that never quite goes dark.',
+    scene: WorldScene.desert,
+    levelPacks: const ['dune', 'oasis', 'mirage', 'pharaoh'],
+    challenges: const [],
+    unlockedBy: 'peak',
+  ),
+  World(
+    id: 'coral',
+    name: 'Coral Deep',
+    tagline: 'Sunlight drifts down through the quiet blue.',
+    scene: WorldScene.ocean,
+    levelPacks: const ['tide', 'reef', 'kelp', 'abyss'],
+    challenges: const [],
+    unlockedBy: 'dunes',
+  ),
+  World(
+    id: 'crater',
+    name: 'Ember Crater',
+    tagline: 'Rivers of glowing lava under a restless sky.',
+    scene: WorldScene.volcano,
+    levelPacks: const ['magma', 'ash', 'obsidian', 'cinder'],
+    challenges: const [],
+    unlockedBy: 'coral',
+  ),
+  World(
+    id: 'tundra',
+    name: 'Frostwind Tundra',
+    tagline: 'Northern lights over endless snow.',
+    scene: WorldScene.tundra,
+    levelPacks: const ['flurry', 'drift', 'glacier', 'icicle'],
+    challenges: const [],
+    unlockedBy: 'crater',
+  ),
+  World(
+    id: 'sky',
+    name: 'Sky Gardens',
+    tagline: 'Floating islands above a sea of clouds.',
+    scene: WorldScene.sky,
+    levelPacks: const ['cloud', 'breeze', 'zephyr', 'gale'],
+    challenges: const [],
+    unlockedBy: 'tundra',
+  ),
+  World(
+    id: 'stadium',
+    name: 'Stadium Nights',
+    tagline: 'Floodlights, a roaring crowd and a perfect pitch.',
+    scene: WorldScene.stadium,
+    levelPacks: const ['kickoff', 'dribble', 'slam', 'final'],
+    challenges: const [],
+    unlockedBy: 'sky',
+  ),
+  World(
+    id: 'arcade',
+    name: 'Neon Arcade',
+    tagline: 'Synthwave sunsets and glowing retro screens.',
+    scene: WorldScene.neon,
+    levelPacks: const ['pixel', 'combo', 'glitch', 'boss'],
+    challenges: const [],
+    unlockedBy: 'stadium',
+  ),
+  World(
+    id: 'nebula',
+    name: 'Nebula Drift',
+    tagline: 'Clouds of colour between the stars.',
+    scene: WorldScene.nebula,
+    levelPacks: const ['nebula', 'pulsar', 'quasar', 'zenith'],
+    challenges: const [],
+    unlockedBy: 'arcade',
   ),
 ];
 

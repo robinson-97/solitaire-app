@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 /// Each peg theme has its own hop trail and landing burst.
-enum FxKind { none, dust, firefly, moon, ember, crystal, star, frost, spore }
+enum FxKind { none, dust, firefly, moon, ember, crystal, star, frost, puff, confetti, pixel, note, sprinkles, crumbs, heart }
 
 Path _poly(Offset c, double r, int points, double inner, double rot) {
   final p = Path();
@@ -60,8 +60,46 @@ void drawParticle(Canvas c, FxKind k, Offset o, double r, double alpha, Color co
         final d = Offset(cos(ang), sin(ang)) * r * 1.3;
         c.drawLine(o - d, o + d, p);
       }
-    case FxKind.spore:
-      c.drawCircle(o, r * 1.6, Paint()..color = const Color(0xFFE6F0B0).withValues(alpha: a * 0.5)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.8));
+    case FxKind.puff:
+      c.drawCircle(o, r * 1.7, Paint()..color = color.withValues(alpha: a * 0.55)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.8));
+    case FxKind.confetti:
+      c.save();
+      c.translate(o.dx, o.dy);
+      c.rotate(rot * 1.7);
+      c.drawRect(Rect.fromCenter(center: Offset.zero, width: r * 1.7, height: r * 0.9),
+          Paint()..color = HSVColor.fromAHSV(a, (rot * 57) % 360, 0.65, 1).toColor());
+      c.restore();
+    case FxKind.pixel:
+      const cols = [Color(0xFFFFD23A), Color(0xFFFF4F6D), Color(0xFF35F0FF)];
+      final side = r * 1.5;
+      c.drawRect(Rect.fromCenter(center: o, width: side, height: side), Paint()..color = cols[rot.floor().abs() % 3].withValues(alpha: a));
+    case FxKind.note:
+      final p = Paint()..color = color.withValues(alpha: a);
+      c.drawOval(Rect.fromCenter(center: o, width: r * 1.5, height: r * 1.1), p);
+      c.drawLine(o + Offset(r * 0.7, 0), o + Offset(r * 0.7, -r * 2.2), p..strokeWidth = max(1.0, r * 0.3));
+      c.drawPath(Path()..moveTo(o.dx + r * 0.7, o.dy - r * 2.2)..quadraticBezierTo(o.dx + r * 1.9, o.dy - r * 1.6, o.dx + r * 1.2, o.dy - r * 0.9), p..style = PaintingStyle.stroke);
+    case FxKind.sprinkles:
+      c.save();
+      c.translate(o.dx, o.dy);
+      c.rotate(rot * 2.3);
+      c.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: r * 2.0, height: r * 0.55), Radius.circular(r * 0.3)),
+        Paint()..color = HSVColor.fromAHSV(a, (rot * 83) % 360, 0.7, 1).toColor(),
+      );
+      c.restore();
+    case FxKind.crumbs:
+      c.save();
+      c.translate(o.dx, o.dy);
+      c.rotate(rot);
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: r * 1.4, height: r * 1.1), Radius.circular(r * 0.35)),
+          Paint()..color = (rot.floor().isEven ? color : const Color(0xFF5E3A14)).withValues(alpha: a));
+      c.restore();
+    case FxKind.heart:
+      final h = Path()
+        ..moveTo(o.dx, o.dy + r * 1.1)
+        ..cubicTo(o.dx - r * 2.0, o.dy - r * 0.2, o.dx - r * 0.9, o.dy - r * 1.5, o.dx, o.dy - r * 0.4)
+        ..cubicTo(o.dx + r * 0.9, o.dy - r * 1.5, o.dx + r * 2.0, o.dy - r * 0.2, o.dx, o.dy + r * 1.1);
+      c.drawPath(h, Paint()..color = const Color(0xFFFF5C8A).withValues(alpha: a));
   }
 }
 
@@ -90,16 +128,16 @@ void paintRipple(Canvas c, Offset center, double px, double v, Color color) {
 void _paintBurst(Canvas c, FxKind k, Offset center, double px, double v, Color color) {
   if (k == FxKind.none) return;
   final rnd = Random(k.index * 31 + 5);
-  final count = switch (k) { FxKind.star => 14, FxKind.ember => 14, FxKind.frost => 12, _ => 11 };
+  final count = switch (k) { FxKind.star => 14, FxKind.ember => 14, FxKind.confetti => 18, FxKind.sprinkles => 16, FxKind.frost => 12, FxKind.note => 7, FxKind.heart => 8, _ => 11 };
   final up = center - Offset(0, px * 0.3);
   for (var i = 0; i < count; i++) {
     final ang = (i / count) * 2 * pi + rnd.nextDouble() * 0.6;
     final speed = px * (2.0 + rnd.nextDouble() * 1.6);
     final vy = px * (2.0 + rnd.nextDouble() * 1.8);
-    var pos = Offset(cos(ang) * speed * v, -vy * v * (k == FxKind.spore ? 0.5 : 1) + px * 2.3 * v * v * (k == FxKind.firefly || k == FxKind.spore ? 0.1 : 1));
+    var pos = Offset(cos(ang) * speed * v, -vy * v * (k == FxKind.puff ? 0.5 : 1) + px * 2.3 * v * v * (k == FxKind.firefly || k == FxKind.puff ? 0.1 : 1));
     if (k == FxKind.firefly) pos += Offset(sin(v * 9 + i) * px * 0.2, 0); // wandering
     final fade = (1 - v * v) * 1.3;
-    drawParticle(c, k, up + pos, px * (0.13 + rnd.nextDouble() * 0.08) * (k == FxKind.spore ? 1.6 : 1), fade, color, v * 6 + i);
+    drawParticle(c, k, up + pos, px * (0.13 + rnd.nextDouble() * 0.08) * (k == FxKind.puff ? 1.6 : 1), fade, color, v * 6 + i);
   }
   // ember: a little smoke rising afterwards; moon: a soft flash
   if (k == FxKind.ember && v > 0.25) {

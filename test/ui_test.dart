@@ -7,7 +7,7 @@ import 'package:hopstone/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Storage> _storage([Map<String, Object> values = const {}]) async {
-  SharedPreferences.setMockInitialValues(values);
+  SharedPreferences.setMockInitialValues({'unlock_all': false, ...values});
   return Storage.open();
 }
 
