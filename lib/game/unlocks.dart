@@ -2,64 +2,60 @@ import '../storage.dart';
 import '../ui/styles.dart';
 import 'worlds.dart';
 
-/// "Reach [percent]% of the best possible score on [boardId]" unlocks a peg
-/// or board look. Percentages keep every level fair: small levels need small
-/// scores, big levels need big ones.
+/// "Reach [percent]% of the best possible score" on one level unlocks a peg
+/// or board look. The level is named by world, pack (0-3) and level (1-5), so
+/// the rules keep working if packs are renamed. Percentages keep it fair:
+/// small levels need small scores, big levels need big ones.
 class UnlockRule {
-  const UnlockRule(this.boardId, this.percent);
-  final String boardId;
+  const UnlockRule(this.world, this.pack, this.level, this.percent);
+  final String world;
+  final int pack;
+  final int level;
   final int percent;
 
+  String get boardId => '${worldById(world).levelPacks[pack]}-$level';
   int get minScore => ((boardById(boardId).maxScore * percent / 100) / 10).round() * 10;
   String get text => 'Score $minScore on ${boardById(boardId).name}';
 }
 
 /// Edit these to rebalance the game. Items without a rule are free.
 const pegRules = <String, UnlockRule>{
-  // Glimmerwood
-  'firefly': UnlockRule('sprout-5', 72),
-  'moonstone': UnlockRule('sapling-5', 74),
-  'mushroom': UnlockRule('grove-5', 70),
-  // Crystal Cavern
-  'geode': UnlockRule('facet-5', 74),
-  'ember': UnlockRule('prism-5', 75),
-  // Starfall Peak
-  'starlight': UnlockRule('comet-5', 80),
-  'frost': UnlockRule('nova-5', 73),
-  // Sunbaked Dunes / Sky Gardens
-  'cookie': UnlockRule('oasis-5', 72),
-  'donut': UnlockRule('breeze-5', 72),
-  // Stadium Nights
-  'soccer': UnlockRule('kickoff-3', 72),
-  'baseball': UnlockRule('kickoff-5', 74),
-  'tennis': UnlockRule('dribble-3', 72),
-  'basketball': UnlockRule('slam-3', 72),
-  'golf': UnlockRule('slam-5', 75),
-  'billiard': UnlockRule('final-3', 74),
-  // Neon Arcade
-  'pixel': UnlockRule('pixel-5', 72),
-  'disco': UnlockRule('combo-5', 74),
-  'vinyl': UnlockRule('glitch-5', 74),
-  'smiley': UnlockRule('boss-3', 75),
-  // Premium materials
-  'marble': UnlockRule('dune-3', 72),
-  'pearl': UnlockRule('tide-5', 72),
-  'amethyst': UnlockRule('zephyr-3', 74),
-  'magma': UnlockRule('obsidian-5', 74),
-  'onyx': UnlockRule('abyss-5', 76),
-  'gold': UnlockRule('gale-5', 78),
-  // Nebula Drift
-  'planet': UnlockRule('nebula-5', 76),
+  'firefly': UnlockRule('forest', 1, 5, 72),
+  'cookie': UnlockRule('desert', 1, 5, 72),
+  'marble': UnlockRule('desert', 0, 3, 72),
+  'pearl': UnlockRule('coral', 1, 5, 72),
+  'planet': UnlockRule('cosmic', 2, 5, 74),
+  'frost': UnlockRule('frozen', 2, 5, 73),
+  'ember': UnlockRule('volcanic', 2, 5, 74),
+  'magma': UnlockRule('volcanic', 3, 3, 74),
+  'mushroom': UnlockRule('jungle', 2, 5, 72),
+  'pixel': UnlockRule('cyber', 1, 5, 72),
+  'disco': UnlockRule('cyber', 2, 5, 74),
+  'baseball': UnlockRule('countryside', 1, 3, 72),
+  'donut': UnlockRule('candy', 1, 5, 72),
+  'moonstone': UnlockRule('moonlit', 2, 5, 74),
+  'basketball': UnlockRule('autumn', 1, 3, 72),
+  'soccer': UnlockRule('ruins', 1, 3, 72),
+  'tennis': UnlockRule('tropical', 1, 3, 73),
+  'golf': UnlockRule('tropical', 3, 3, 74),
+  'geode': UnlockRule('crystal', 1, 5, 74),
+  'amethyst': UnlockRule('crystal', 2, 5, 75),
+  'billiard': UnlockRule('fairytale', 2, 3, 75),
+  'gold': UnlockRule('treasure', 2, 5, 77),
+  'onyx': UnlockRule('treasure', 3, 5, 78),
+  'vinyl': UnlockRule('sakura', 1, 5, 75),
+  'smiley': UnlockRule('sakura', 2, 3, 75),
+  'starlight': UnlockRule('skyislands', 3, 5, 80),
 };
 
 const boardRules = <String, UnlockRule>{
-  'mossy': UnlockRule('sapling-3', 68),
-  'crystal': UnlockRule('lumen-3', 67),
-  'rune': UnlockRule('lumen-5', 70),
-  'marble': UnlockRule('comet-3', 74),
-  'lava': UnlockRule('meteor-5', 73),
-  'pitch': UnlockRule('final-5', 75),
-  'neon': UnlockRule('boss-5', 76),
+  'mossy': UnlockRule('forest', 2, 3, 68),
+  'lava': UnlockRule('volcanic', 3, 5, 73),
+  'neon': UnlockRule('cyber', 3, 5, 76),
+  'crystal': UnlockRule('crystal', 3, 3, 70),
+  'rune': UnlockRule('crystal', 3, 5, 72),
+  'pitch': UnlockRule('fairytale', 3, 5, 76),
+  'marble': UnlockRule('skyislands', 2, 5, 76),
 };
 
 /// Rewards that a given board can earn, for display on level/board cards.

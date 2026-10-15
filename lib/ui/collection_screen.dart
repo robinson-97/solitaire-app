@@ -216,7 +216,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         child: Stack(fit: StackFit.expand, children: [
           ColorFiltered(
             colorFilter: open ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _grey,
-            child: SceneArt(w.scene),
+            child: SceneArt(w.scene, art: w.art),
           ),
           DecoratedBox(
             decoration: BoxDecoration(

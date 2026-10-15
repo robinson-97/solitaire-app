@@ -385,6 +385,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: SceneBackground(
         scene: worldOfBoard(widget.board.id).scene,
+        art: worldOfBoard(widget.board.id).art,
         child: SafeArea(
           child: Column(children: [
             Padding(

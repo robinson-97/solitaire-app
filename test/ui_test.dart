@@ -25,7 +25,7 @@ void main() {
     expect(find.text('Jump to clear'), findsOneWidget);
     await t.tap(find.text('Skip'));
     await t.pump(const Duration(milliseconds: 400));
-    expect(find.text('Glimmerwood'), findsOneWidget);
+    expect(find.text('Enchanted Forest'), findsOneWidget);
     expect(find.text('Play level 1'), findsOneWidget);
   });
 
@@ -55,7 +55,7 @@ void main() {
     final s = await _storage();
     final u = Unlocks(s);
     expect(u.pegUnlocked('ember'), isFalse);
-    await s.submitScore('prism-5', 500);
+    await s.submitScore(pegRules['ember']!.boardId, 900);
     expect(u.pegUnlocked('ember'), isTrue);
     expect(u.pegUnlocked('moonstone'), isFalse);
     expect(u.snapshot().contains('peg:ember'), isTrue);

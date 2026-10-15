@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:hopstone/game/board_def.dart';
+import 'package:hopstone/game/catalog_data.dart';
 
 List<Pos>? generate(Set<Pos> holes, List<(int, int)> dirs, int pegs, Random rnd) {
   final cur = <Pos>{holes.elementAt(rnd.nextInt(holes.length))};
@@ -32,65 +33,38 @@ void main() {
   print('// Each entry is a start position (row, col) that can be cleared to one peg.');
   print("import 'board_def.dart';\n");
   print('final List<BoardDef> handmadeLevels = [');
-  const E = BoardShape.english, F = BoardShape.french, T = BoardShape.triangle;
-  const easy = Difficulty.easy, med = Difficulty.medium, hard = Difficulty.hard, exp = Difficulty.expert;
-  final packs = [
-    // World 1 - Glimmerwood
-    ('seedling', 'Seedling', easy, E, [4, 5, 6, 7, 8]),
-    ('sprout', 'Sprout', easy, E, [9, 10, 11, 12, 13]),
-    ('sapling', 'Sapling', med, E, [14, 15, 16, 17, 18]),
-    ('grove', 'Grove', med, E, [19, 20, 21, 22, 23]),
-    // World 2 - Crystal Cavern
-    ('geode', 'Geode', med, T, [5, 6, 7, 8, 9]),
-    ('facet', 'Facet', med, F, [10, 12, 14, 16, 18]),
-    ('prism', 'Prism', hard, E, [20, 21, 22, 23, 24]),
-    ('lumen', 'Lumen', hard, F, [20, 22, 24, 26, 28]),
-    // World 3 - Starfall Peak
-    ('comet', 'Comet', hard, E, [22, 23, 24, 25, 26]),
-    ('nova', 'Nova', hard, F, [24, 25, 26, 27, 28]),
-    ('meteor', 'Meteor', exp, E, [26, 27, 28, 28, 28]),
-    ('aurora', 'Aurora', exp, F, [28, 29, 30, 30, 30]),
-    // World 4 - Sunbaked Dunes
-    ('dune', 'Dune', easy, BoardShape.square, [6, 8, 10, 12, 14]),
-    ('oasis', 'Oasis', easy, BoardShape.diamond, [7, 9, 11, 13, 15]),
-    ('mirage', 'Mirage', med, BoardShape.hourglass, [10, 12, 14, 16, 18]),
-    ('pharaoh', 'Pharaoh', med, BoardShape.arrow, [10, 12, 14, 16, 17]),
-    // World 5 - Coral Deep
-    ('tide', 'Tide', med, BoardShape.ring, [12, 15, 18, 21, 24]),
-    ('reef', 'Reef', med, BoardShape.heart, [10, 12, 14, 16, 18]),
-    ('kelp', 'Kelp', med, BoardShape.tee, [10, 12, 14, 16, 18]),
-    ('abyss', 'Abyss', hard, BoardShape.stairs, [10, 12, 13, 14, 15]),
-    // World 6 - Ember Crater
-    ('magma', 'Magma', hard, E, [16, 18, 20, 22, 24]),
-    ('ash', 'Ash', hard, F, [18, 20, 22, 24, 26]),
-    ('obsidian', 'Obsidian', hard, BoardShape.ring, [20, 22, 24, 26, 28]),
-    ('cinder', 'Cinder', hard, BoardShape.diamond, [14, 16, 17, 18, 19]),
-    // World 7 - Frostwind Tundra
-    ('flurry', 'Flurry', hard, BoardShape.hourglass, [16, 18, 20, 22, 24]),
-    ('drift', 'Drift', hard, BoardShape.heart, [14, 16, 18, 19, 20]),
-    ('glacier', 'Glacier', hard, BoardShape.square, [14, 16, 17, 18, 19]),
-    ('icicle', 'Icicle', hard, BoardShape.tee, [14, 16, 17, 18, 19]),
-    // World 8 - Sky Gardens
-    ('cloud', 'Cloud', med, T, [6, 7, 8, 9, 10]),
-    ('breeze', 'Breeze', hard, BoardShape.arrow, [14, 16, 18, 19, 20]),
-    ('zephyr', 'Zephyr', hard, BoardShape.stairs, [12, 14, 15, 16, 17]),
-    ('gale', 'Gale', hard, E, [18, 20, 22, 24, 26]),
-    // World 9 - Stadium Nights
-    ('kickoff', 'Kickoff', hard, E, [20, 22, 24, 26, 27]),
-    ('dribble', 'Dribble', hard, F, [22, 24, 26, 28, 29]),
-    ('slam', 'Slam', exp, BoardShape.ring, [24, 26, 28, 30, 31]),
-    ('final', 'Final', exp, BoardShape.hourglass, [20, 22, 24, 26, 27]),
-    // World 10 - Neon Arcade
-    ('pixel', 'Pixel', hard, BoardShape.square, [12, 14, 16, 18, 20]),
-    ('combo', 'Combo', hard, BoardShape.diamond, [14, 16, 18, 19, 20]),
-    ('glitch', 'Glitch', exp, BoardShape.heart, [16, 18, 20, 22, 23]),
-    ('boss', 'Boss', exp, F, [26, 28, 29, 30, 30]),
-    // World 11 - Nebula Drift
-    ('nebula', 'Nebula', exp, E, [24, 26, 28, 29, 30]),
-    ('pulsar', 'Pulsar', exp, F, [28, 29, 30, 31, 31]),
-    ('quasar', 'Quasar', exp, BoardShape.ring, [28, 30, 32, 33, 34]),
-    ('zenith', 'Zenith', exp, BoardShape.hourglass, [24, 26, 27, 28, 28]),
+  // Shape and size ramp for every pack of every world (20 worlds x 4 packs).
+  const maxPegs = {
+    BoardShape.english: 30, BoardShape.french: 31, BoardShape.triangle: 9, BoardShape.square: 14,
+    BoardShape.diamond: 19, BoardShape.ring: 33, BoardShape.heart: 20, BoardShape.hourglass: 24,
+    BoardShape.arrow: 17, BoardShape.tee: 17, BoardShape.stairs: 15,
+  };
+  const pool = [
+    BoardShape.english, BoardShape.square, BoardShape.diamond, BoardShape.french, BoardShape.hourglass,
+    BoardShape.heart, BoardShape.ring, BoardShape.tee, BoardShape.arrow, BoardShape.stairs, BoardShape.triangle,
   ];
+  final packs = <(String, String, Difficulty, BoardShape, List<int>)>[];
+  for (var w = 0; w < worldCatalog.length; w++) {
+    for (var p = 0; p < 4; p++) {
+      final name = worldCatalog[w].packs[p];
+      final late = [BoardShape.english, BoardShape.french, BoardShape.ring, BoardShape.hourglass, BoardShape.english, BoardShape.french];
+      final shape = w == 0 ? BoardShape.english : (w >= 12 ? late[(w * 4 + p) % late.length] : pool[(w * 4 + p) % pool.length]);
+      final wf = w / (worldCatalog.length - 1);
+      final counts = <int>[];
+      for (var i = 0; i < 5; i++) {
+        final local = i / 4;
+        var progress = 0.55 * wf + 0.09 * p + 0.12 * local + (w == 0 ? 0.0 : 0.12);
+        if (progress > 0.98) progress = 0.98;
+        var n = (4 + progress * (maxPegs[shape]! - 4)).round();
+        if (n < 4) n = 4;
+        counts.add(n);
+      }
+      final level = (w * 4 + p) / 79;
+      final d = level < 0.2 ? Difficulty.easy : level < 0.5 ? Difficulty.medium : level < 0.8 ? Difficulty.hard : Difficulty.expert;
+      packs.add((name.toLowerCase(), name, d, shape, counts));
+    }
+  }
+  final used = <String>{};
   for (final (id, name, d, shape, counts) in packs) {
     final holes = shapeHoles(shape);
     final dirs = shape == BoardShape.triangle ? triangular : orthogonal;
@@ -100,7 +74,10 @@ void main() {
       var want = counts[i];
       while (res == null && want > 3) {
         for (var tries = 0; res == null && tries < 3000; tries++) {
-          res = generate(holes, dirs, want, rnd);
+          final cand = generate(holes, dirs, want, rnd);
+          if (cand == null) continue;
+          final key = '${shape.name}:${cand.map((p) => '${p.row}.${p.col}').join(',')}';
+          if (used.add(key)) res = cand;
         }
         if (res == null) {
           stderr.writeln('$id ${i + 1}: $want pegs not reachable, trying ${want - 1}');

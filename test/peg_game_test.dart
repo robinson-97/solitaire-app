@@ -99,7 +99,8 @@ void main() {
     for (final w in worlds) {
       expect(w.levels.length, 20, reason: w.id);
     }
-    expect(worlds.length, 11);
+    expect(worlds.length, 20);
+    expect(handmadeLevels.length, 400);
     expect(handmadeLevels.first.passAt, 1);
     expect(handmadeLevels.every((l) => l.center == null), isTrue);
     expect(classicBoard.passAt, 3);

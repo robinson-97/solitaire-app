@@ -9,9 +9,9 @@ import 'widgets.dart';
 
 /// The home tab: one world at a time, 20 levels in a simple grid.
 class PlayPage extends StatefulWidget {
-  const PlayPage({super.key, required this.storage, required this.sceneNotifier});
+  const PlayPage({super.key, required this.storage, required this.worldNotifier});
   final Storage storage;
-  final ValueNotifier<WorldScene> sceneNotifier;
+  final ValueNotifier<World> worldNotifier;
 
   @override
   State<PlayPage> createState() => _PlayPageState();
@@ -33,7 +33,7 @@ class _PlayPageState extends State<PlayPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.sceneNotifier.value = worlds[idx].scene;
+      if (mounted) widget.worldNotifier.value = worlds[idx];
     });
   }
 
@@ -41,7 +41,7 @@ class _PlayPageState extends State<PlayPage> {
     final n = idx + d;
     if (n < 0 || n >= worlds.length) return;
     setState(() => idx = n);
-    widget.sceneNotifier.value = worlds[n].scene;
+    widget.worldNotifier.value = worlds[n];
   }
 
   Future<void> _play(BoardDef b) async {

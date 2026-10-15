@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import '../game/worlds.dart';
 import 'shaders.dart';
@@ -8,8 +9,9 @@ import 'theme.dart';
 /// Animated world scenery. Everything is drawn with smooth curves and soft
 /// glows; motion loops seamlessly and stops when "reduce motion" is on.
 class SceneBackground extends StatefulWidget {
-  const SceneBackground({super.key, required this.scene, this.child = const SizedBox.shrink()});
+  const SceneBackground({super.key, required this.scene, this.art, this.child = const SizedBox.shrink()});
   final WorldScene scene;
+  final String? art; // optional illustration; the built-in scene is the fallback
   final Widget child;
 
   @override
@@ -38,12 +40,12 @@ class _SceneBackgroundState extends State<SceneBackground>
   }
 
   @override
-  Widget build(BuildContext context) => Stack(children: [
+  Widget build(BuildContext context) => Stack(fit: StackFit.expand, children: [
         Positioned.fill(
           child: RepaintBoundary(
             child: AnimatedBuilder(
               animation: _c,
-              builder: (_, _) => _SceneLayers(scene: widget.scene, t: _c.value),
+              builder: (_, _) => _WorldLayers(scene: widget.scene, art: widget.art, t: _c.value),
             ),
           ),
         ),
@@ -813,12 +815,13 @@ class _ScenePainter extends CustomPainter {
 
 /// A still frame of a scene, used on world cards.
 class SceneArt extends StatelessWidget {
-  const SceneArt(this.scene, {super.key});
+  const SceneArt(this.scene, {super.key, this.art});
   final WorldScene scene;
+  final String? art;
 
   @override
   Widget build(BuildContext context) =>
-      _SceneLayers(scene: scene, t: 0.12, half: false);
+      _WorldLayers(scene: scene, art: art, t: 0.12, half: false, still: true);
 }
 
 /// Atmosphere (shader, drawn at half resolution for speed) + silhouettes.
@@ -872,4 +875,129 @@ class _SkyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SkyPainter old) => old.t != t || old.scene != scene;
+}
+
+final Map<String, bool> _artExists = {};
+
+Future<bool> _hasArt(String path) async {
+  final known = _artExists[path];
+  if (known != null) return known;
+  try {
+    await rootBundle.load(path);
+    return _artExists[path] = true;
+  } catch (_) {
+    return _artExists[path] = false;
+  }
+}
+
+/// Uses the world's illustration when the file exists (with a slow camera
+/// drift and floating light motes), otherwise the built-in animated scenery.
+class _WorldLayers extends StatefulWidget {
+  const _WorldLayers({required this.scene, required this.art, required this.t, this.half = true, this.still = false});
+  final WorldScene scene;
+  final String? art;
+  final double t;
+  final bool half;
+  final bool still;
+
+  @override
+  State<_WorldLayers> createState() => _WorldLayersState();
+}
+
+class _WorldLayersState extends State<_WorldLayers> {
+  bool? hasArt;
+
+  @override
+  void initState() {
+    super.initState();
+    _probe();
+  }
+
+  @override
+  void didUpdateWidget(_WorldLayers old) {
+    super.didUpdateWidget(old);
+    if (old.art != widget.art) _probe();
+  }
+
+  void _probe() {
+    final a = widget.art;
+    if (a == null) {
+      hasArt = false;
+      return;
+    }
+    final cached = _artExists[a];
+    if (cached != null) {
+      hasArt = cached;
+      return;
+    }
+    hasArt = null;
+    _hasArt(a).then((v) {
+      if (mounted) setState(() => hasArt = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (hasArt != true) {
+      return _SceneLayers(scene: widget.scene, t: widget.t, half: widget.half);
+    }
+    final t = widget.t;
+    final k = widget.still ? 0.0 : t * 2 * pi;
+    final col = _moteColor(widget.scene);
+    return Stack(fit: StackFit.expand, children: [
+      Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..translateByDouble(sin(k) * 10, cos(k * 0.5) * 7, 0, 1)
+          ..scaleByDouble(1.10 + 0.035 * sin(k), 1.10 + 0.035 * sin(k), 1, 1),
+        child: Image.asset(widget.art!, fit: BoxFit.cover, filterQuality: FilterQuality.medium, errorBuilder: (_, _, _) => const SizedBox.expand()),
+      ),
+      CustomPaint(painter: _MotePainter(widget.still ? 0.2 : t, col)),
+      // soft light sweep + readable edges for the interface on top
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.black.withValues(alpha: 0.38), Colors.transparent, Colors.black.withValues(alpha: 0.12), Colors.black.withValues(alpha: 0.55)],
+            stops: const [0.0, 0.22, 0.6, 1.0],
+          ),
+        ),
+      ),
+    ]);
+  }
+}
+
+Color _moteColor(WorldScene s) => switch (s) {
+      WorldScene.forest => const Color(0xFFFFE9A0),
+      WorldScene.ocean => const Color(0xFFBFF6FF),
+      WorldScene.tundra || WorldScene.peak => const Color(0xFFEAF6FF),
+      WorldScene.volcano => const Color(0xFFFFB36B),
+      WorldScene.neon || WorldScene.nebula => const Color(0xFFFFB8F0),
+      _ => const Color(0xFFFFF3C8),
+    };
+
+/// Glowing dust drifting upward over an illustration.
+class _MotePainter extends CustomPainter {
+  _MotePainter(this.t, this.color);
+  final double t;
+  final Color color;
+
+  @override
+  void paint(Canvas c, Size s) {
+    if (s.isEmpty) return;
+    final r = Random(19);
+    for (var i = 0; i < 34; i++) {
+      final speed = 1 + i % 3;
+      final x = r.nextDouble() * s.width + sin(t * 2 * pi * 2 + i) * 16;
+      final y = s.height - ((r.nextDouble() + t * speed) % 1.0) * s.height;
+      final tw = 0.35 + 0.65 * (0.5 + 0.5 * sin(t * 2 * pi * 5 + i * 1.7));
+      final size = 1.0 + r.nextDouble() * 2.2;
+      c.drawCircle(Offset(x, y), size * 4, Paint()..color = color.withValues(alpha: 0.16 * tw)..maskFilter = MaskFilter.blur(BlurStyle.normal, size * 2.5));
+      c.drawCircle(Offset(x, y), size * 0.7, Paint()..color = Colors.white.withValues(alpha: 0.8 * tw));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MotePainter old) => old.t != t;
 }

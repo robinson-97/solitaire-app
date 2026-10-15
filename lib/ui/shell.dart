@@ -20,11 +20,11 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   int tab = 0;
   late bool intro = !widget.storage.seenIntro;
-  final ValueNotifier<WorldScene> worldScene = ValueNotifier(WorldScene.forest);
+  final ValueNotifier<World> worldNotifier = ValueNotifier(worlds.first);
 
   @override
   void dispose() {
-    worldScene.dispose();
+    worldNotifier.dispose();
     super.dispose();
   }
 
@@ -39,13 +39,13 @@ class _ShellState extends State<Shell> {
     return Scaffold(
       body: Stack(children: [
         Positioned.fill(
-          child: ValueListenableBuilder<WorldScene>(
-            valueListenable: worldScene,
-            builder: (_, scene, _) {
-              final shown = tab == 0 ? scene : WorldScene.forest;
+          child: ValueListenableBuilder<World>(
+            valueListenable: worldNotifier,
+            builder: (_, world, _) {
+              final shown = tab == 0 ? world : worlds.first;
               return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 700),
-                child: SceneBackground(key: ValueKey(shown), scene: shown),
+                child: SceneBackground(key: ValueKey(shown.id), scene: shown.scene, art: shown.art),
               );
             },
           ),
@@ -53,7 +53,7 @@ class _ShellState extends State<Shell> {
         SafeArea(
           bottom: false,
           child: IndexedStack(index: tab, children: [
-            PlayPage(storage: widget.storage, sceneNotifier: worldScene),
+            PlayPage(storage: widget.storage, worldNotifier: worldNotifier),
             CollectionPage(storage: widget.storage),
             SettingsPage(storage: widget.storage, onReset: () => setState(() {})),
           ]),

@@ -60,6 +60,7 @@ flutter:
     - shaders/scene.frag
   assets:
     - assets/sfx/
+    - assets/worlds/
   fonts:
     - family: Poppins
       fonts:
