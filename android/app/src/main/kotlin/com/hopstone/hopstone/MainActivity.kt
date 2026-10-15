@@ -1,4 +1,4 @@
-package com.glimmerwood.glimmerwood
+package com.hopstone.hopstone
 
 import io.flutter.embedding.android.FlutterActivity
 

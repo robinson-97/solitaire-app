@@ -8,16 +8,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final storage = await Storage.open();
-  runApp(GlimmerwoodApp(storage: storage));
+  runApp(HopstoneApp(storage: storage));
 }
 
-class GlimmerwoodApp extends StatelessWidget {
-  const GlimmerwoodApp({super.key, required this.storage});
+class HopstoneApp extends StatelessWidget {
+  const HopstoneApp({super.key, required this.storage});
   final Storage storage;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Glimmerwood',
+        title: 'Hopstone',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: HomeScreen(storage: storage),

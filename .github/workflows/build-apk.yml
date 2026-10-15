@@ -28,15 +28,15 @@ jobs:
       - run: flutter test
       - run: flutter build apk --release
       - name: Name the APK
-        run: cp build/app/outputs/flutter-apk/app-release.apk glimmerwood-test.apk
+        run: cp build/app/outputs/flutter-apk/app-release.apk hopstone-test.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: glimmerwood-test-apk
-          path: glimmerwood-test.apk
+          name: hopstone-test-apk
+          path: hopstone-test.apk
       - name: Publish as a downloadable test release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: test-${{ github.run_number }}
-          name: Glimmerwood test build ${{ github.run_number }}
+          name: Hopstone test build ${{ github.run_number }}
           prerelease: true
-          files: glimmerwood-test.apk
+          files: hopstone-test.apk

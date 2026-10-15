@@ -57,7 +57,7 @@ class _ForestPainter extends CustomPainter {
         ).createShader(rect),
     );
     // moon
-    final moon = Offset(s.width * 0.8, s.height * 0.12);
+    final moon = Offset(s.width * 0.84, s.height * 0.2);
     canvas.drawCircle(moon, 46,
         Paint()..color = const Color(0x33FFF3C4)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24));
     canvas.drawCircle(moon, 22, Paint()..color = const Color(0xFFFFF3C4));

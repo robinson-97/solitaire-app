@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import '../game/board_def.dart';
 import '../game/peg_game.dart';
 import '../storage.dart';
+import '../game/journey.dart';
 import 'background.dart';
 import 'theme.dart';
+import 'widgets.dart';
 
 /// Maps board holes to screen coordinates for a given cell size.
 class BoardGeometry {
@@ -213,7 +215,11 @@ class _GameScreenState extends State<GameScreen> {
             : () {
                 Navigator.pop(ctx);
                 Navigator.of(context).pushReplacement(MaterialPageRoute(
-                  builder: (_) => GameScreen(board: widget.nextBoard!, storage: widget.storage),
+                  builder: (_) => GameScreen(
+                    board: widget.nextBoard!,
+                    storage: widget.storage,
+                    nextBoard: nextInJourney(widget.nextBoard!),
+                  ),
                 ));
               },
         onMenu: () {
@@ -250,12 +256,15 @@ class _GameScreenState extends State<GameScreen> {
               ]),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                _stat('Pegs', '${game.pegsLeft}'),
-                _stat('Time', _fmt(game.secondsElapsed())),
-                _stat('Undos', '${game.undosUsed}'),
-              ]),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                  _stat('Pegs', '${game.pegsLeft}'),
+                  _stat('Time', _fmt(game.secondsElapsed())),
+                  _stat('Undos', '${game.undosUsed}'),
+                ]),
+              ),
             ),
             Expanded(
               child: LayoutBuilder(builder: (context, box) {
@@ -403,18 +412,41 @@ class _PegBody extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const RadialGradient(
-            center: Alignment(-0.35, -0.4),
-            radius: 0.95,
-            colors: [Color(0xFFE2A25A), Color(0xFF9A5B26), Color(0xFF4F2A0E)],
-            stops: [0.0, 0.55, 1.0],
+            center: Alignment(-0.3, -0.45),
+            radius: 1.0,
+            colors: [Color(0xFFFFE3A8), Color(0xFFE9A04A), Color(0xFFA85F1E), Color(0xFF4A230A)],
+            stops: [0.0, 0.3, 0.75, 1.0],
           ),
+          border: Border.all(color: const Color(0xFF3A1B07), width: 1),
           boxShadow: [
             BoxShadow(
-              color: selected ? lantern.withValues(alpha: 0.9) : Colors.black54,
-              blurRadius: selected ? 16 : 4,
-              offset: selected ? Offset.zero : const Offset(0, 2),
+              color: selected ? lantern.withValues(alpha: 0.95) : Colors.black87,
+              blurRadius: selected ? 20 : 5,
+              spreadRadius: selected ? 2 : 0,
+              offset: selected ? Offset.zero : const Offset(1, 3),
             ),
           ],
+        ),
+        // glossy highlight
+        child: LayoutBuilder(
+          builder: (_, c) => Stack(children: [
+            Positioned(
+              left: c.maxWidth * 0.2,
+              top: c.maxHeight * 0.12,
+              width: c.maxWidth * 0.42,
+              height: c.maxHeight * 0.26,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(c.maxWidth),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white.withValues(alpha: 0.75), Colors.white.withValues(alpha: 0.0)],
+                  ),
+                ),
+              ),
+            ),
+          ]),
         ),
       );
 }
@@ -427,47 +459,91 @@ class _BoardPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cell = geo.cell;
-    final wood = Path();
+    // One merged outline (no seams between neighbouring cells).
+    var wood = Path();
     for (final h in geo.def.holes) {
-      final c = geo.centerOf(h);
-      wood.addRRect(RRect.fromRectAndRadius(
-        Rect.fromCenter(center: c, width: cell * 1.18, height: cell * 1.18),
-        Radius.circular(cell * 0.45),
-      ));
+      wood = Path.combine(
+        PathOperation.union,
+        wood,
+        Path()
+          ..addRRect(RRect.fromRectAndRadius(
+            Rect.fromCenter(center: geo.centerOf(h), width: cell * 1.2, height: cell * 1.2),
+            Radius.circular(cell * 0.3),
+          )),
+      );
     }
-    canvas.drawPath(wood.shift(const Offset(0, 5)),
-        Paint()..color = Colors.black54..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+    final bounds = wood.getBounds();
+
+    // lantern glow + drop shadow under the board
+    canvas.drawPath(wood,
+        Paint()..color = lantern.withValues(alpha: 0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 26));
+    canvas.drawPath(wood.shift(const Offset(0, 7)),
+        Paint()..color = Colors.black87..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9));
+
+    // wood body
     canvas.drawPath(
       wood,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [woodLight, woodDark],
-        ).createShader(Offset.zero & size),
+          colors: [Color(0xFFC48A52), Color(0xFF9A6234), Color(0xFF6B4423)],
+        ).createShader(bounds),
     );
+
+    // wood grain, clipped to the board
+    canvas.save();
+    canvas.clipPath(wood);
+    final grain = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = const Color(0xFF3B200C).withValues(alpha: 0.22);
+    for (var y = bounds.top; y < bounds.bottom; y += cell * 0.17) {
+      final p = Path()..moveTo(bounds.left, y);
+      for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
+        p.quadraticBezierTo(x + cell * 0.25, y + sin(x * 0.07 + y * 0.13) * 2.4, x + cell * 0.5, y);
+      }
+      canvas.drawPath(p, grain);
+    }
+    // carved bevel: light edge top-left, dark edge bottom-right
+    canvas.drawPath(wood.shift(const Offset(2.5, 2.5)),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
+    canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)),
+        Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = const Color(0xFFFFD9A0).withValues(alpha: 0.45));
+    // moss patches
+    final moss = Paint()..color = const Color(0xFF3F7A3A).withValues(alpha: 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    canvas.drawCircle(bounds.topLeft + Offset(cell * 2.1, cell * 0.2), cell * 0.35, moss);
+    canvas.drawCircle(bounds.bottomRight - Offset(cell * 2.1, cell * 0.15), cell * 0.4, moss);
+    canvas.drawCircle(bounds.centerLeft + Offset(cell * 0.2, cell * 0.4), cell * 0.28, moss);
+    canvas.restore();
+    canvas.drawPath(wood,
+        Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = const Color(0xFF2E1808));
+
+    // recessed holes
     for (final h in geo.def.holes) {
       final c = geo.centerOf(h);
-      final r = cell * 0.36;
-      canvas.drawCircle(c + const Offset(0, 1.5), r,
-          Paint()..color = const Color(0x55FFE2B0));
+      final r = cell * 0.37;
+      // lower lip catches light
+      canvas.drawCircle(c + const Offset(0, 2), r + 1, Paint()..color = const Color(0x66FFE2B0));
       canvas.drawCircle(
         c,
         r,
         Paint()
           ..shader = const RadialGradient(
-            center: Alignment(0, -0.3),
-            colors: [Color(0xFF24130A), holeColor],
+            center: Alignment(0, 0.55),
+            radius: 1.0,
+            colors: [Color(0xFF4A2A14), Color(0xFF1B0D05)],
           ).createShader(Rect.fromCircle(center: c, radius: r)),
       );
+      // inner shadow from the top edge
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r - 1.5), pi * 1.05, pi * 0.9, false,
+          Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = Colors.black.withValues(alpha: 0.6));
       if (targets.contains(h)) {
-        canvas.drawCircle(c, r * 1.1,
-            Paint()..color = lantern.withValues(alpha: 0.55)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
-        canvas.drawCircle(c, r * 0.8,
-            Paint()
-              ..color = lantern
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 3);
+        canvas.drawCircle(c, r * 1.25,
+            Paint()..color = lantern.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+        canvas.drawCircle(c, r * 0.55, Paint()..color = lantern.withValues(alpha: 0.85));
+        canvas.drawCircle(c, r * 0.9,
+            Paint()..color = const Color(0xFFFFE0A0)..style = PaintingStyle.stroke..strokeWidth = 2.5);
       }
     }
   }

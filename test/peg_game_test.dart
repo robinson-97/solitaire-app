@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:glimmerwood/game/board_def.dart';
-import 'package:glimmerwood/game/levels_data.dart';
-import 'package:glimmerwood/game/peg_game.dart';
+import 'package:hopstone/game/board_def.dart';
+import 'package:hopstone/game/levels_data.dart';
+import 'package:hopstone/game/peg_game.dart';
 
 void main() {
   test('board has 33 holes and starts with 32 pegs, center empty', () {

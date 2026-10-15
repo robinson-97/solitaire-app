@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:glimmerwood/main.dart';
-import 'package:glimmerwood/storage.dart';
+import 'package:hopstone/main.dart';
+import 'package:hopstone/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -11,8 +11,10 @@ void main() {
     addTearDown(t.view.reset);
     SharedPreferences.setMockInitialValues({});
     final storage = await Storage.open();
-    await t.pumpWidget(GlimmerwoodApp(storage: storage));
-    expect(find.text('Glimmerwood'), findsOneWidget);
+    await t.pumpWidget(HopstoneApp(storage: storage));
+    expect(find.text('Hopstone'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Classic English'), 200,
+        scrollable: find.byType(Scrollable).first);
     await t.tap(find.text('Classic English'));
     await t.pump(const Duration(milliseconds: 100));
     await t.pump(const Duration(milliseconds: 600));
@@ -27,10 +29,12 @@ void main() {
     addTearDown(t.view.reset);
     SharedPreferences.setMockInitialValues({});
     final storage = await Storage.open();
-    await t.pumpWidget(GlimmerwoodApp(storage: storage));
-    await t.scrollUntilVisible(find.text('Easy'), 200,
+    await t.pumpWidget(HopstoneApp(storage: storage));
+    await t.scrollUntilVisible(find.text('Seedling'), 200,
         scrollable: find.byType(Scrollable).first);
-    await t.tap(find.text('4 pegs'));
+    await t.ensureVisible(find.text('1').first);
+    await t.pump();
+    await t.tap(find.text('1').first);
     await t.pump(const Duration(milliseconds: 100));
     await t.pump(const Duration(milliseconds: 600));
     expect(find.text('Seedling 1'), findsOneWidget);

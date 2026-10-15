@@ -1,7 +1,7 @@
 // Generates solvable handmade levels by playing backwards from one peg.
 // Run: dart run tool/gen_levels.dart > lib/game/levels_data.dart
 import 'dart:math';
-import 'package:glimmerwood/game/board_def.dart';
+import 'package:hopstone/game/board_def.dart';
 
 bool solvable(BoardDef b, Set<Pos> start, {int limit = 2000000}) {
   final seen = <String>{};
