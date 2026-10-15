@@ -17,6 +17,9 @@ class Storage {
     return true;
   }
 
+  bool solved(String boardId) => _prefs.getBool('solved_$boardId') ?? false;
+  Future<void> markSolved(String boardId) => _prefs.setBool('solved_$boardId', true);
+
   int get totalPoints => _prefs.getInt('total_points') ?? 0;
   Future<void> addPoints(int n) =>
       _prefs.setInt('total_points', totalPoints + n);
@@ -28,4 +31,14 @@ class Storage {
   Future<void> setPegTheme(String id) => _prefs.setString('peg_theme', id);
   String get boardTheme => _prefs.getString('board_theme') ?? 'oak';
   Future<void> setBoardTheme(String id) => _prefs.setString('board_theme', id);
+
+  Future<void> resetAll() async {
+    for (final k in _prefs.getKeys().toList()) {
+      if (k.startsWith('best_') || k.startsWith('solved_') || k == 'total_points') {
+        await _prefs.remove(k);
+      }
+    }
+    await setPegTheme('acorn');
+    await setBoardTheme('oak');
+  }
 }

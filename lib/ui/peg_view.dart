@@ -84,6 +84,29 @@ class _PegPainter extends CustomPainter {
               stops: const [0.0, 0.18, 0.4],
             ).createShader(rect),
         );
+      case PegKind.crystal:
+        final facet = Paint()..color = Colors.white.withValues(alpha: 0.28)..strokeWidth = 1.1..style = PaintingStyle.stroke;
+        final hex = Path();
+        for (var i = 0; i < 6; i++) {
+          final a = i * pi / 3 - pi / 2;
+          final pt = c + Offset(cos(a), sin(a)) * r * 0.62;
+          i == 0 ? hex.moveTo(pt.dx, pt.dy) : hex.lineTo(pt.dx, pt.dy);
+          canvas.drawLine(c, c + Offset(cos(a), sin(a)) * r, facet);
+        }
+        hex.close();
+        canvas.drawPath(hex, facet);
+        canvas.drawCircle(c, r * 0.3, Paint()..color = const Color(0xFFD9CCFF).withValues(alpha: 0.25 + 0.35 * pulse)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.2));
+      case PegKind.star:
+        final star = Path();
+        for (var i = 0; i < 10; i++) {
+          final a = i * pi / 5 - pi / 2;
+          final rad = i.isEven ? r * 0.55 : r * 0.24;
+          final pt = c + Offset(cos(a), sin(a)) * rad;
+          i == 0 ? star.moveTo(pt.dx, pt.dy) : star.lineTo(pt.dx, pt.dy);
+        }
+        star.close();
+        canvas.drawPath(star, Paint()..color = const Color(0xFF7A4A08).withValues(alpha: 0.35));
+        canvas.drawPath(star, Paint()..color = const Color(0xFFFFF3B0).withValues(alpha: 0.55 + 0.4 * pulse)..style = PaintingStyle.stroke..strokeWidth = 1.4);
       case PegKind.ember:
         final facet = Paint()..color = const Color(0xFF3A0A02).withValues(alpha: 0.35)..strokeWidth = 1.2..style = PaintingStyle.stroke;
         for (var i = 0; i < 6; i++) {

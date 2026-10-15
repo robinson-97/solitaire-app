@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'storage.dart';
-import 'ui/home_screen.dart';
+import 'ui/shell.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -20,6 +20,6 @@ class HopstoneApp extends StatelessWidget {
         title: 'Hopstone',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        home: HomeScreen(storage: storage),
+        home: Shell(storage: storage),
       );
 }

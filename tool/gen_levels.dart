@@ -1,37 +1,15 @@
 // Generates solvable handmade levels by playing backwards from one peg.
 // Run: dart run tool/gen_levels.dart > lib/game/levels_data.dart
+// ignore_for_file: avoid_print
 import 'dart:math';
 import 'package:hopstone/game/board_def.dart';
 
-bool solvable(BoardDef b, Set<Pos> start, {int limit = 2000000}) {
-  final seen = <String>{};
-  var nodes = 0;
-  String key(Set<Pos> s) =>
-      (s.map((p) => p.row * 10 + p.col).toList()..sort()).join(',');
-  bool go(Set<Pos> s) {
-    if (s.length == 1) return true;
-    if (++nodes > limit) return false;
-    if (!seen.add(key(s))) return false;
-    for (final p in s) {
-      for (final (dr, dc) in b.dirs) {
-        final over = Pos(p.row + dr, p.col + dc);
-        final to = Pos(p.row + 2 * dr, p.col + 2 * dc);
-        if (s.contains(over) && b.holes.contains(to) && !s.contains(to)) {
-          if (go({...s}..remove(p)..remove(over)..add(to))) return true;
-        }
-      }
-    }
-    return false;
-  }
-  return go(start);
-}
-
-List<Pos>? generate(Set<Pos> holes, int pegs, Random rnd) {
+List<Pos>? generate(Set<Pos> holes, List<(int, int)> dirs, int pegs, Random rnd) {
   final cur = <Pos>{holes.elementAt(rnd.nextInt(holes.length))};
   while (cur.length < pegs) {
     final opts = <(Pos, Pos, Pos)>[];
     for (final to in cur) {
-      for (final (dr, dc) in orthogonal) {
+      for (final (dr, dc) in dirs) {
         final over = Pos(to.row - dr, to.col - dc);
         final from = Pos(to.row - 2 * dr, to.col - 2 * dc);
         if (holes.contains(over) && holes.contains(from) &&
@@ -54,19 +32,25 @@ void main() {
   print("import 'board_def.dart';\n");
   print('final List<BoardDef> handmadeLevels = [');
   final packs = [
-    ('seedling', 'Seedling', Difficulty.easy, [4, 5, 6, 7, 8]),
-    ('sapling', 'Sapling', Difficulty.medium, [10, 12, 14, 16, 18]),
-    ('elder', 'Elder', Difficulty.hard, [20, 22, 24, 26, 28]),
+    ('seedling', 'Seedling', Difficulty.easy, BoardShape.english, [4, 5, 6, 7, 8]),
+    ('sapling', 'Sapling', Difficulty.medium, BoardShape.english, [10, 12, 14, 16, 18]),
+    ('geode', 'Geode', Difficulty.medium, BoardShape.triangle, [5, 6, 7, 8, 9]),
+    ('facet', 'Facet', Difficulty.hard, BoardShape.french, [12, 14, 16, 18, 20]),
+    ('comet', 'Comet', Difficulty.hard, BoardShape.english, [20, 22, 24, 26, 28]),
+    ('meteor', 'Meteor', Difficulty.expert, BoardShape.french, [21, 24, 26, 28, 30]),
   ];
-  for (final (id, name, d, counts) in packs) {
+  for (final (id, name, d, shape, counts) in packs) {
+    final holes = shapeHoles(shape);
+    final dirs = shape == BoardShape.triangle ? triangular : orthogonal;
     for (var i = 0; i < counts.length; i++) {
-      final rnd = Random(1000 * counts[i] + 7);
+      final rnd = Random(1000 * counts[i] + 7 + shape.index);
       List<Pos>? res;
-      while (res == null) {
-        res = generate(englishHoles, counts[i], rnd);
+      for (var tries = 0; res == null && tries < 5000; tries++) {
+        res = generate(holes, dirs, counts[i], rnd);
       }
+      if (res == null) throw StateError('cannot build $id ${i + 1}');
       final lit = res.map((p) => '(${p.row}, ${p.col})').join(', ');
-      print("  levelBoard('$id-${i + 1}', '$name ${i + 1}', Difficulty.${d.name}, [$lit]),");
+      print("  levelBoard('$id-${i + 1}', '$name ${i + 1}', Difficulty.${d.name}, BoardShape.${shape.name}, [$lit]),");
     }
   }
   print('];');

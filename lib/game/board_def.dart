@@ -82,18 +82,6 @@ bool _frenchShape(int r, int c) {
 final englishHoles = _grid(7, _english);
 const _c33 = Pos(3, 3);
 
-BoardDef _withPegs(String id, String name, String desc, Difficulty d,
-        List<(int, int)> pegs) =>
-    BoardDef(
-      id: id,
-      name: name,
-      description: desc,
-      difficulty: d,
-      holes: englishHoles,
-      pegs: {for (final (r, c) in pegs) Pos(r, c)},
-      center: _c33,
-    );
-
 final BoardDef classicBoard = BoardDef(
   id: 'classic',
   name: 'Classic English',
@@ -134,7 +122,32 @@ final BoardDef triangleBoard = () {
   );
 }();
 
-/// Handmade puzzles on the English board, built backwards from one peg so
-/// each one is guaranteed solvable (see tool/gen_levels.dart).
-BoardDef levelBoard(String id, String name, Difficulty d, List<(int, int)> p) =>
-    _withPegs(id, name, '${p.length} pegs. Leave just one.', d, p);
+enum BoardShape { english, french, triangle }
+
+final Set<Pos> frenchHoles = _grid(7, (r, c) => _frenchShape(r, c));
+final Set<Pos> triangleHoles = {
+  for (var r = 0; r < 5; r++)
+    for (var c = 0; c <= r; c++) Pos(r, c),
+};
+
+Set<Pos> shapeHoles(BoardShape s) => switch (s) {
+      BoardShape.english => englishHoles,
+      BoardShape.french => frenchHoles,
+      BoardShape.triangle => triangleHoles,
+    };
+
+/// Handmade puzzles, built backwards from one peg so each one is guaranteed
+/// solvable (see tool/gen_levels.dart).
+BoardDef levelBoard(String id, String name, Difficulty d, BoardShape shape,
+        List<(int, int)> p) =>
+    BoardDef(
+      id: id,
+      name: name,
+      description: '${p.length} pegs. Leave just one.',
+      difficulty: d,
+      holes: shapeHoles(shape),
+      pegs: {for (final (r, c) in p) Pos(r, c)},
+      dirs: shape == BoardShape.triangle ? triangular : orthogonal,
+      center: shape == BoardShape.triangle ? null : _c33,
+      triangle: shape == BoardShape.triangle,
+    );

@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game/board_def.dart';
-import '../game/journey.dart';
+import '../game/unlocks.dart';
+import '../game/worlds.dart';
 import '../game/peg_game.dart';
 import '../storage.dart';
 import 'background.dart';
@@ -295,21 +296,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final first = !submitted;
     submitted = true;
     var isBest = false;
+    var unlocked = <String>[];
     if (first) {
+      final u = Unlocks(widget.storage);
+      final before = u.snapshot();
       isBest = await widget.storage.submitScore(widget.board.id, score.total);
       await widget.storage.addPoints(score.total);
+      if (game.pegsLeft == 1) await widget.storage.markSolved(widget.board.id);
+      unlocked = (u.snapshot().difference(before)).toList();
     }
     await Future.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
-    _showResult(score, isBest);
+    _showResult(score, isBest, unlocked);
   }
 
-  void _showResult(ScoreBreakdown s, bool isBest) {
+  void _showResult(ScoreBreakdown s, bool isBest, List<String> unlocked) {
     showDialog<void>(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (ctx) => _ResultDialog(
         score: s,
         isBest: isBest,
+        unlocked: unlocked,
+        storage: widget.storage,
         onRetry: () {
           Navigator.pop(ctx);
           setState(_reset);
@@ -318,13 +327,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ? null
             : () {
                 Navigator.pop(ctx);
-                Navigator.of(context).pushReplacement(MaterialPageRoute(
-                  builder: (_) => GameScreen(
-                    board: widget.nextBoard!,
-                    storage: widget.storage,
-                    nextBoard: nextInJourney(widget.nextBoard!),
-                  ),
-                ));
+                Navigator.of(context).pushReplacement(softRoute(GameScreen(
+                  board: widget.nextBoard!,
+                  storage: widget.storage,
+                  nextBoard: nextLevel(widget.nextBoard!),
+                )));
               },
         onMenu: () {
           Navigator.pop(ctx);
@@ -339,37 +346,45 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final still = reduceMotion(context);
-    final pegTheme = pegThemeById(widget.storage.pegTheme);
-    final boardTheme = boardThemeById(widget.storage.boardTheme);
+    final u = Unlocks(widget.storage);
+    final pegTheme = pegThemeById(u.pegUnlocked(widget.storage.pegTheme) ? widget.storage.pegTheme : 'acorn');
+    final boardTheme = boardThemeById(u.boardUnlocked(widget.storage.boardTheme) ? widget.storage.boardTheme : 'oak');
     return Scaffold(
-      body: TwilightBackground(
+      body: SceneBackground(
+        scene: worldOfBoard(widget.board.id).scene,
         child: SafeArea(
           child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  tooltip: 'Back',
-                  onPressed: () => Navigator.pop(context),
+                Material(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.18))),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.pop(context),
+                    child: const Padding(padding: EdgeInsets.all(10), child: Icon(Icons.arrow_back_rounded, size: 22)),
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(widget.board.name, style: displayFont.copyWith(fontSize: 26)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(widget.board.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 20, fontWeight: FontWeight.w700)),
+                    Text(worldOfBoard(widget.board.id).name, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
+                  ]),
                 ),
-                Text(widget.board.difficulty.label,
-                    style: const TextStyle(color: lantern, fontSize: 16)),
+                Chip2(widget.board.difficulty.label.toUpperCase()),
               ]),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: GlassCard(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                  _stat('Pegs', '${game.pegsLeft}'),
-                  _stat('Time', _fmt(game.secondsElapsed())),
-                  _stat('Undos', '${game.undosUsed}'),
-                ]),
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(children: [
+                Expanded(child: _stat(Icons.circle, 'Pegs', '${game.pegsLeft}')),
+                const SizedBox(width: 10),
+                Expanded(child: _stat(Icons.timer_outlined, 'Time', _fmt(game.secondsElapsed()))),
+                const SizedBox(width: 10),
+                Expanded(child: _stat(Icons.undo_rounded, 'Undos', '${game.undosUsed}')),
+              ]),
             ),
             Expanded(
               child: LayoutBuilder(builder: (context, box) {
@@ -395,25 +410,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
               child: Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: hist.isEmpty ? null : _undo,
-                    icon: const Icon(Icons.undo),
-                    label: const Text('Undo'),
-                  ),
-                ),
+                Expanded(child: PillButton(label: 'Undo', icon: Icons.undo_rounded, onTap: hist.isEmpty ? null : _undo)),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: confirmRestart ? Colors.red.shade800 : woodDark,
-                      foregroundColor: parchment,
-                    ),
-                    onPressed: _restart,
-                    icon: const Icon(Icons.refresh),
-                    label: Text(confirmRestart ? 'Tap again to restart' : 'Restart'),
+                  child: PillButton(
+                    label: confirmRestart ? 'Tap again' : 'Restart',
+                    icon: Icons.refresh_rounded,
+                    danger: confirmRestart,
+                    onTap: _restart,
                   ),
                 ),
               ]),
@@ -424,10 +430,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _stat(String label, String value) => Column(children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.white70)),
-        Text(value, style: displayFont.copyWith(fontSize: 26)),
-      ]);
+  Widget _stat(IconData icon, String label, String value) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.38),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Column(children: [
+          Text(label.toUpperCase(), style: TextStyle(fontSize: 9.5, letterSpacing: 1.2, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.6))),
+          Text(value, style: displayFont.copyWith(fontSize: 22, fontWeight: FontWeight.w700)),
+        ]),
+      );
 
   bool get _hopping => hop != null && _hopC.value < 1;
 
@@ -665,14 +679,18 @@ class _BoardPainter extends CustomPainter {
     );
     canvas.save();
     canvas.clipPath(wood);
-    if (theme.stone) {
+    if (theme.kind == BoardKind.stone || theme.kind == BoardKind.marble || theme.kind == BoardKind.crystal) {
       final rnd = Random(3);
       for (var i = 0; i < 260; i++) {
         final o = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
         canvas.drawCircle(o, cell * (0.02 + rnd.nextDouble() * 0.05),
             Paint()..color = (rnd.nextBool() ? Colors.black : Colors.white).withValues(alpha: 0.10));
       }
-      final crack = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = theme.grain.withValues(alpha: 0.5);
+      final crackAlpha = theme.kind == BoardKind.stone ? 0.5 : 0.35 + 0.3 * pulse;
+      final crack = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = theme.kind == BoardKind.stone ? 1.1 : 1.6
+        ..color = (theme.kind == BoardKind.stone ? theme.grain : theme.grain).withValues(alpha: crackAlpha);
       for (var i = 0; i < 7; i++) {
         final a = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
         final p = Path()..moveTo(a.dx, a.dy);
@@ -697,8 +715,8 @@ class _BoardPainter extends CustomPainter {
     canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
     canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.white.withValues(alpha: 0.3));
     // moss
-    final moss = Paint()..color = theme.moss.withValues(alpha: theme.stone ? 0.7 : 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-    final mossSpots = theme.stone ? 7 : 3;
+    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final mossSpots = theme.kind == BoardKind.stone ? 7 : theme.kind == BoardKind.wood ? 3 : 4;
     final mr = Random(8);
     for (var i = 0; i < mossSpots; i++) {
       final x = bounds.left + mr.nextDouble() * bounds.width;
@@ -738,37 +756,99 @@ class _BoardPainter extends CustomPainter {
   bool shouldRepaint(_BoardPainter old) => true;
 }
 
-class _ResultDialog extends StatelessWidget {
+class _ResultDialog extends StatefulWidget {
   const _ResultDialog({
     required this.score,
     required this.isBest,
+    required this.unlocked,
+    required this.storage,
     required this.onRetry,
     required this.onNext,
     required this.onMenu,
   });
   final ScoreBreakdown score;
   final bool isBest;
+  final List<String> unlocked;
+  final Storage storage;
   final VoidCallback onRetry;
   final VoidCallback? onNext;
   final VoidCallback onMenu;
 
+  @override
+  State<_ResultDialog> createState() => _ResultDialogState();
+}
+
+class _ResultDialogState extends State<_ResultDialog> {
   Widget _row(String l, int v, {bool bold = false}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(children: [
           Expanded(
             child: Text(l,
                 style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+                    fontSize: 14,
+                    fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
                     color: v == 0 && !bold ? Colors.white38 : parchment)),
           ),
           Text(v == 0 && !bold ? '-' : (bold ? '$v' : '+$v'),
-              style: TextStyle(fontSize: 17, fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
+              style: TextStyle(fontSize: bold ? 18 : 14, fontWeight: bold ? FontWeight.w700 : FontWeight.w500, color: bold ? lantern : null)),
         ]),
       );
 
+  Widget _unlockRow(String key) {
+    final kind = key.split(':').first;
+    final id = key.split(':').last;
+    Widget lead;
+    String title;
+    Widget? action;
+    switch (kind) {
+      case 'peg':
+        final t = pegThemeById(id);
+        lead = SizedBox(width: 38, height: 38, child: PegView(theme: t, glow: 0.3));
+        title = '${t.name} pegs';
+        action = PillButton(
+          label: widget.storage.pegTheme == id ? 'Equipped' : 'Equip',
+          primary: widget.storage.pegTheme != id,
+          compact: true,
+          onTap: widget.storage.pegTheme == id
+              ? null
+              : () async {
+                  await widget.storage.setPegTheme(id);
+                  setState(() {});
+                },
+        );
+      case 'board':
+        final t = boardThemeById(id);
+        lead = BoardPreview(classicBoard, size: 40, theme: t, showPegs: false);
+        title = '${t.name} board';
+        action = PillButton(
+          label: widget.storage.boardTheme == id ? 'Equipped' : 'Equip',
+          primary: widget.storage.boardTheme != id,
+          compact: true,
+          onTap: widget.storage.boardTheme == id
+              ? null
+              : () async {
+                  await widget.storage.setBoardTheme(id);
+                  setState(() {});
+                },
+        );
+      default:
+        lead = const Icon(Icons.public_rounded, color: lantern, size: 32);
+        title = '${worldById(id).name} world';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(children: [
+        SizedBox(width: 42, child: Center(child: lead)),
+        const SizedBox(width: 10),
+        Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
+        if (action != null) action,
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final score = widget.score;
     final medal = score.medal;
     final medalName = switch (medal) {
       Medal.gold => 'Gold medal',
@@ -782,48 +862,72 @@ class _ResultDialog extends StatelessWidget {
       _ => const Color(0xFFCD8B4A),
     };
     return Dialog(
-      backgroundColor: const Color(0xEE14183A),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: lantern, width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF232A74), Color(0xFF0B1033)]),
+          border: Border.all(color: lantern.withValues(alpha: 0.6), width: 1.4),
+          boxShadow: [BoxShadow(color: lantern.withValues(alpha: 0.25), blurRadius: 40)],
+        ),
+        padding: const EdgeInsets.all(22),
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(score.rank, style: displayFont.copyWith(fontSize: 38, color: lantern)),
+            ShaderMask(
+              shaderCallback: (r) => const LinearGradient(colors: [Color(0xFFFFE9A8), Color(0xFFFFA43B)]).createShader(r),
+              child: Text(score.rank, style: displayFont.copyWith(fontSize: 40, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
             Text('${score.pegsLeft} ${score.pegsLeft == 1 ? 'peg' : 'pegs'} left',
-                style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 12),
+                style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.75))),
+            const SizedBox(height: 14),
             _row('Jumps', score.jumpPoints),
             _row('Pegs-left bonus', score.pegsLeftBonus),
             _row('Center finish', score.centerBonus),
             _row('Speed bonus', score.speedBonus),
             _row('Clean finish', score.cleanBonus),
-            const Divider(color: Colors.white24),
+            Divider(color: Colors.white.withValues(alpha: 0.18), height: 18),
             _row('Total', score.total, bold: true),
             if (medalName != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.workspace_premium, color: medalColor, size: 30),
+                Icon(Icons.workspace_premium_rounded, color: medalColor, size: 28),
                 const SizedBox(width: 6),
-                Text(medalName, style: TextStyle(fontSize: 18, color: medalColor)),
+                Text(medalName, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: medalColor)),
               ]),
             ],
-            if (isBest)
+            if (widget.isBest)
               const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text('New best score!',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: lantern)),
+                padding: EdgeInsets.only(top: 8),
+                child: Chip2('NEW BEST SCORE'),
               ),
-            const SizedBox(height: 16),
+            if (widget.unlocked.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: lantern.withValues(alpha: 0.1),
+                  border: Border.all(color: lantern.withValues(alpha: 0.5)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Row(children: [
+                    Icon(Icons.auto_awesome, color: lantern, size: 18),
+                    SizedBox(width: 8),
+                    Text('NEW UNLOCK', style: TextStyle(fontSize: 11, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: lantern)),
+                  ]),
+                  for (final k in widget.unlocked) _unlockRow(k),
+                ]),
+              ),
+            ],
+            const SizedBox(height: 18),
             Row(children: [
-              Expanded(child: OutlinedButton(onPressed: onMenu, child: const Text('Menu'))),
+              Expanded(child: PillButton(label: 'Menu', onTap: widget.onMenu, compact: true)),
               const SizedBox(width: 8),
-              Expanded(child: OutlinedButton(onPressed: onRetry, child: const Text('Retry'))),
-              if (onNext != null) ...[
+              Expanded(child: PillButton(label: 'Retry', onTap: widget.onRetry, compact: true)),
+              if (widget.onNext != null) ...[
                 const SizedBox(width: 8),
-                Expanded(child: FilledButton(onPressed: onNext, child: const Text('Next'))),
+                Expanded(child: PillButton(label: 'Next', primary: true, onTap: widget.onNext, compact: true)),
               ],
             ]),
           ]),

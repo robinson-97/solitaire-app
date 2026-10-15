@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/board_def.dart';
 import 'package:hopstone/game/levels_data.dart';
 import 'package:hopstone/game/peg_game.dart';
+import 'package:hopstone/game/solver.dart';
+import 'package:hopstone/game/unlocks.dart';
+import 'package:hopstone/game/worlds.dart';
 
 void main() {
   test('board has 33 holes and starts with 32 pegs, center empty', () {
@@ -69,5 +72,19 @@ void main() {
     final g = PegGame(triangleBoard);
     expect(g.allMoves.length, 2);
     expect(g.allMoves.any((m) => m.from == const Pos(2, 0) && m.to == const Pos(0, 0)), isTrue);
+  });
+
+  test('every handmade level is solvable down to one peg', () {
+    for (final l in handmadeLevels) {
+      expect(canSolve(l, l.pegs), isTrue, reason: l.id);
+    }
+  });
+
+  test('worlds cover all levels and rules point at real boards', () {
+    final ids = {for (final w in worlds) ...w.levels.map((l) => l.id)};
+    expect(ids.length, handmadeLevels.length);
+    for (final r in [...pegRules.values, ...boardRules.values]) {
+      expect(() => boardById(r.boardId), returnsNormally);
+    }
   });
 }
