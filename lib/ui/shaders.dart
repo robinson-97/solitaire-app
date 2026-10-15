@@ -5,14 +5,17 @@ import 'dart:ui' as ui;
 class Gfx {
   static ui.FragmentProgram? gloss;
   static ui.FragmentProgram? material;
+  static ui.FragmentProgram? scene;
 
   static Future<void> init() async {
     try {
       gloss = await ui.FragmentProgram.fromAsset('shaders/gloss.frag');
       material = await ui.FragmentProgram.fromAsset('shaders/peg.frag');
+      scene = await ui.FragmentProgram.fromAsset('shaders/scene.frag');
     } catch (_) {
       gloss = null;
       material = null;
+      scene = null;
     }
   }
 }
