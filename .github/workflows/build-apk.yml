@@ -1,0 +1,42 @@
+name: Build test APK
+
+# Every push builds an installable Android test app (APK) and attaches it to a
+# GitHub "Release" so it can be downloaded straight onto a phone.
+on:
+  push:
+    branches: [claude/glimmerwood-peg-solitaire-9tvfsj, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - run: flutter build apk --release
+      - name: Name the APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk glimmerwood-test.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glimmerwood-test-apk
+          path: glimmerwood-test.apk
+      - name: Publish as a downloadable test release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-${{ github.run_number }}
+          name: Glimmerwood test build ${{ github.run_number }}
+          prerelease: true
+          files: glimmerwood-test.apk

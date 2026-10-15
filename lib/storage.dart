@@ -1,0 +1,26 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Everything is saved locally on the device. No account, no network.
+class Storage {
+  Storage._(this._prefs);
+  final SharedPreferences _prefs;
+
+  static Future<Storage> open() async =>
+      Storage._(await SharedPreferences.getInstance());
+
+  int bestScore(String boardId) => _prefs.getInt('best_$boardId') ?? 0;
+
+  /// Saves [score] if it beats the old best. Returns true when it did.
+  Future<bool> submitScore(String boardId, int score) async {
+    if (score <= bestScore(boardId)) return false;
+    await _prefs.setInt('best_$boardId', score);
+    return true;
+  }
+
+  int get totalPoints => _prefs.getInt('total_points') ?? 0;
+  Future<void> addPoints(int n) =>
+      _prefs.setInt('total_points', totalPoints + n);
+
+  bool get haptics => _prefs.getBool('haptics') ?? true;
+  Future<void> setHaptics(bool v) => _prefs.setBool('haptics', v);
+}
