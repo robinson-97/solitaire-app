@@ -15,13 +15,13 @@ const pegRules = <String, UnlockRule>{
   'geode': UnlockRule('french', 450),
   'moonstone': UnlockRule('classic', 500),
   'ember': UnlockRule('classic', 700),
-  'starlight': UnlockRule('comet-5', 600),
+  'starlight': UnlockRule('comet-5', 550),
 };
 
 const boardRules = <String, UnlockRule>{
   'mossy': UnlockRule('sapling-3', 350),
   'crystal': UnlockRule('french', 650),
-  'marble': UnlockRule('comet-5', 640),
+  'marble': UnlockRule('comet-5', 600),
 };
 
 /// Rewards that a given board can earn, for display on level/board cards.

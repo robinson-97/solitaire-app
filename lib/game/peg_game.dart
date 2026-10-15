@@ -79,6 +79,7 @@ class PegGame {
   ScoreBreakdown score({DateTime? now}) => ScoreBreakdown.compute(
         pegsLeft: pegsLeft,
         startPegs: board.startPegs,
+        maxScore: board.maxScore,
         lastPegInCenter:
             pegsLeft == 1 && board.center != null && hasPeg(board.center!),
         seconds: secondsElapsed(now: now),
@@ -96,6 +97,7 @@ class ScoreBreakdown {
     required this.centerBonus,
     required this.speedBonus,
     required this.cleanBonus,
+    this.maxScore = 850,
   });
 
   final int pegsLeft;
@@ -105,6 +107,9 @@ class ScoreBreakdown {
   final int speedBonus;
   final int cleanBonus;
 
+  /// Best possible score on the board; medals are fractions of it.
+  final int maxScore;
+
   int get total =>
       jumpPoints + pegsLeftBonus + centerBonus + speedBonus + cleanBonus;
 
@@ -113,6 +118,7 @@ class ScoreBreakdown {
   factory ScoreBreakdown.compute({
     required int pegsLeft,
     int startPegs = 32,
+    int maxScore = 850,
     required bool lastPegInCenter,
     required int seconds,
     required int undos,
@@ -126,6 +132,7 @@ class ScoreBreakdown {
       centerBonus: bonuses && pegsLeft == 1 && lastPegInCenter ? 100 : 0,
       speedBonus: bonuses ? (150 - seconds).clamp(0, 150) : 0,
       cleanBonus: bonuses && undos == 0 ? 40 : 0,
+      maxScore: maxScore,
     );
   }
 
@@ -137,12 +144,15 @@ class ScoreBreakdown {
         _ => 'Apprentice',
       };
 
-  Medal get medal => medalFor(total);
+  Medal get medal => medalFor(total, maxScore);
 
-  static Medal medalFor(int score) {
-    if (score >= 700) return Medal.gold;
-    if (score >= 500) return Medal.silver;
-    if (score >= 300) return Medal.bronze;
+  /// Bronze/silver/gold at 300/500/700 of the classic board's 850 points,
+  /// scaled to each board's own maximum.
+  static Medal medalFor(int score, int maxScore) {
+    final f = score / maxScore;
+    if (f >= 700 / 850) return Medal.gold;
+    if (f >= 500 / 850) return Medal.silver;
+    if (f >= 300 / 850) return Medal.bronze;
     return Medal.none;
   }
 }

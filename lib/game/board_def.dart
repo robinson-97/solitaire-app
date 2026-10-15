@@ -60,6 +60,11 @@ class BoardDef {
   int get cols => holes.map((p) => p.col).reduce((a, b) => a > b ? a : b) + 1;
   int get startPegs => pegs.length;
 
+  /// Best score that can be reached on this board (instant, clean, 1 peg).
+  /// Medals are fractions of this, so small levels can earn gold too.
+  int get maxScore =>
+      maxJumps * 10 + 250 + 150 + 40 + (center != null ? 100 : 0);
+
   /// A level counts as cleared when this many pegs (or fewer) are left.
   int get passAt => startPegs < 10 ? 1 : (startPegs < 20 ? 2 : 3);
   String get goalText => passAt == 1 ? 'Leave just 1 peg' : 'Leave $passAt or fewer pegs';
@@ -105,7 +110,6 @@ final BoardDef frenchBoard = () {
     difficulty: Difficulty.expert,
     holes: holes,
     pegs: {...holes}..remove(const Pos(3, 5)),
-    center: _c33,
   );
 }();
 
@@ -152,6 +156,5 @@ BoardDef levelBoard(String id, String name, Difficulty d, BoardShape shape,
       holes: shapeHoles(shape),
       pegs: {for (final (r, c) in p) Pos(r, c)},
       dirs: shape == BoardShape.triangle ? triangular : orthogonal,
-      center: shape == BoardShape.triangle ? null : _c33,
       triangle: shape == BoardShape.triangle,
     );

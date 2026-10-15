@@ -327,6 +327,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         cleared: cleared,
         stars: stars,
         goal: widget.board.goalText,
+        hasCenter: widget.board.center != null,
         onRetry: () {
           Navigator.pop(ctx);
           setState(_reset);
@@ -773,6 +774,7 @@ class _ResultDialog extends StatefulWidget {
     required this.cleared,
     required this.stars,
     required this.goal,
+    required this.hasCenter,
     required this.onRetry,
     required this.onNext,
     required this.onMenu,
@@ -784,6 +786,7 @@ class _ResultDialog extends StatefulWidget {
   final bool cleared;
   final int stars;
   final String goal;
+  final bool hasCenter;
   final VoidCallback onRetry;
   final VoidCallback? onNext;
   final VoidCallback onMenu;
@@ -911,7 +914,7 @@ class _ResultDialogState extends State<_ResultDialog> {
             const SizedBox(height: 14),
             _row('Jumps', score.jumpPoints),
             _row('Pegs-left bonus', score.pegsLeftBonus),
-            _row('Center finish', score.centerBonus),
+            if (widget.hasCenter) _row('Center finish', score.centerBonus),
             _row('Speed bonus', score.speedBonus),
             _row('Clean finish', score.cleanBonus),
             Divider(color: Colors.white.withValues(alpha: 0.18), height: 18),

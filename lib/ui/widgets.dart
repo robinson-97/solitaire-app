@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../game/board_def.dart';
-import '../game/peg_game.dart';
 import 'game_screen.dart' show BoardGeometry;
 import 'styles.dart';
 import 'theme.dart';
@@ -162,27 +161,6 @@ class ProgressBar extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// Medal as 3 gems: bronze=1, silver=2, gold=3.
-class MedalStars extends StatelessWidget {
-  const MedalStars(this.best, {super.key, this.size = 16});
-  final int best;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final n = switch (ScoreBreakdown.medalFor(best)) {
-      Medal.gold => 3,
-      Medal.silver => 2,
-      Medal.bronze => 1,
-      Medal.none => 0,
-    };
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      for (var i = 0; i < 3; i++)
-        Icon(Icons.star_rounded, size: size, color: i < n ? const Color(0xFFFFD25A) : Colors.white24),
-    ]);
-  }
 }
 
 class Chip2 extends StatelessWidget {

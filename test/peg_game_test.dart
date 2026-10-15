@@ -54,10 +54,15 @@ void main() {
   });
 
   test('medal thresholds', () {
-    expect(ScoreBreakdown.medalFor(299), Medal.none);
-    expect(ScoreBreakdown.medalFor(300), Medal.bronze);
-    expect(ScoreBreakdown.medalFor(500), Medal.silver);
-    expect(ScoreBreakdown.medalFor(700), Medal.gold);
+    expect(ScoreBreakdown.medalFor(299, 850), Medal.none);
+    expect(ScoreBreakdown.medalFor(300, 850), Medal.bronze);
+    expect(ScoreBreakdown.medalFor(500, 850), Medal.silver);
+    expect(ScoreBreakdown.medalFor(700, 850), Medal.gold);
+    // a tiny level: 469 of a possible 470 is gold
+    final tiny = handmadeLevels.first;
+    expect(tiny.maxScore, 470);
+    expect(ScoreBreakdown.medalFor(469, tiny.maxScore), Medal.gold);
+    expect(classicBoard.maxScore, 850);
   });
   test('every level starts with the promised peg count', () {
     for (final l in handmadeLevels) {
@@ -95,6 +100,7 @@ void main() {
       expect(w.levels.length, 20, reason: w.id);
     }
     expect(handmadeLevels.first.passAt, 1);
+    expect(handmadeLevels.every((l) => l.center == null), isTrue);
     expect(classicBoard.passAt, 3);
     expect(classicBoard.goalText, 'Leave 3 or fewer pegs');
   });
