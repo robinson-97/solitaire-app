@@ -5,6 +5,8 @@ import '../game/levels_data.dart';
 import '../storage.dart';
 import 'background.dart';
 import 'game_screen.dart';
+import 'peg_view.dart';
+import 'styles.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -49,6 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
               const SizedBox(height: 18),
               _playButton(cont),
+              const SizedBox(height: 18),
+              _stylePicker(),
               const SizedBox(height: 28),
               _heading('Boards'),
               for (final b in [triangleBoard, classicBoard, frenchBoard]) ...[
@@ -126,6 +130,40 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      );
+
+  Widget _stylePicker() => GlassCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Pegs', style: displayFont.copyWith(fontSize: 20)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final t in pegThemes)
+              ChoiceChip(
+                avatar: SizedBox(width: 22, height: 22, child: PegView(theme: t, glow: 0.25)),
+                label: Text(t.name),
+                selected: widget.storage.pegTheme == t.id,
+                onSelected: (_) async {
+                  await widget.storage.setPegTheme(t.id);
+                  if (mounted) setState(() {});
+                },
+              ),
+          ]),
+          const SizedBox(height: 12),
+          Text('Board', style: displayFont.copyWith(fontSize: 20)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final t in boardThemes)
+              ChoiceChip(
+                avatar: CircleAvatar(backgroundColor: t.body[1]),
+                label: Text(t.name),
+                selected: widget.storage.boardTheme == t.id,
+                onSelected: (_) async {
+                  await widget.storage.setBoardTheme(t.id);
+                  if (mounted) setState(() {});
+                },
+              ),
+          ]),
+        ]),
       );
 
   Widget _heading(String t) => Padding(

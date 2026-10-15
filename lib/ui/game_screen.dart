@@ -3,10 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game/board_def.dart';
+import '../game/journey.dart';
 import '../game/peg_game.dart';
 import '../storage.dart';
-import '../game/journey.dart';
 import 'background.dart';
+import 'peg_view.dart';
+import 'styles.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -42,11 +44,88 @@ class BoardGeometry {
   }
 }
 
+/// The board seen from a tilted camera: flat geometry plus a perspective
+/// matrix. Pegs are drawn upright on top of the projected hole positions.
+class TiltedBoard {
+  TiltedBoard._(this.flat, this.matrix, this.size, this.thick, this._centers, this._scales);
+  final BoardGeometry flat;
+  final Matrix4 matrix;
+  final Size size;
+  final double thick;
+  final Map<Pos, Offset> _centers;
+  final Map<Pos, double> _scales;
+
+  static const tilt = 0.52;
+  double get cell => flat.cell;
+
+  static TiltedBoard build(BoardDef def, double cell) {
+    final flat = BoardGeometry(def, cell);
+    final w = flat.width, h = flat.height;
+    final persp = Matrix4.identity()..setEntry(3, 2, 0.32 / w);
+    final m0 = Matrix4.translationValues(w / 2, h / 2, 0) *
+        persp *
+        Matrix4.rotationX(-tilt) *
+        Matrix4.translationValues(-w / 2, -h / 2, 0);
+    Offset pr(Matrix4 m, Offset o) => MatrixUtils.transformPoint(m, o);
+    final corners = [Offset.zero, Offset(w, 0), Offset(0, h), Offset(w, h)].map((o) => pr(m0, o));
+    final b = corners.map((o) => Rect.fromPoints(o, o)).reduce((a, c) => a.expandToInclude(c));
+    final top = cell * 0.95;
+    final thick = cell * 0.3;
+    final m = Matrix4.translationValues(-b.left, -b.top + top, 0) * m0;
+    final centers = <Pos, Offset>{};
+    final scales = <Pos, double>{};
+    for (final p in def.holes) {
+      final q = flat.centerOf(p);
+      centers[p] = pr(m, q);
+      scales[p] = (pr(m, q + Offset(cell, 0)) - centers[p]!).dx / cell;
+    }
+    return TiltedBoard._(flat, m, Size(b.width, b.height + top + thick + cell * 0.3), thick, centers, scales);
+  }
+
+  /// Largest board that fits the box.
+  static TiltedBoard fit(BoardDef def, double maxW, double maxH) {
+    final probe = build(def, 10);
+    final k = min(maxW / probe.size.width, maxH / probe.size.height) * 10;
+    return build(def, min(k, 64));
+  }
+
+  Offset centerOf(Pos p) => _centers[p]!;
+  double scaleOf(Pos p) => _scales[p]!;
+
+  /// Same as [centerOf] for a position between holes (flat coordinates).
+  Offset project(Offset flatPoint) => MatrixUtils.transformPoint(matrix, flatPoint);
+  double scaleAtFlat(Offset f) => (project(f + Offset(cell, 0)) - project(f)).dx / cell;
+
+  double pegSize(double scale) => cell * scale * 0.8;
+
+  Pos? hit(Offset o) {
+    Pos? best;
+    var bestD = double.infinity;
+    for (final p in flat.def.holes) {
+      final s = scaleOf(p);
+      // pegs sit raised above their hole, so aim a little above it
+      final d = (centerOf(p) - Offset(0, pegSize(s) * 0.28) - o).distance;
+      if (d < cell * s * 0.58 && d < bestD) {
+        bestD = d;
+        best = p;
+      }
+    }
+    return best;
+  }
+}
+
 class _Rec {
   _Rec(this.move, this.movedId, this.removedId);
   final Move move;
   final int movedId;
   final int removedId;
+}
+
+class _Hop {
+  _Hop(this.id, this.from, this.to);
+  final int id;
+  final Pos from;
+  final Pos to;
 }
 
 class GameScreen extends StatefulWidget {
@@ -59,7 +138,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late PegGame game;
   late Map<Pos, int> ids;
   int nextId = 0;
@@ -73,6 +152,12 @@ class _GameScreenState extends State<GameScreen> {
   Timer? confirmTimer;
   bool confirmRestart = false;
   bool submitted = false;
+  _Hop? hop;
+
+  late final AnimationController _hopC =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 520), value: 1);
+  late final AnimationController _glowC =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
 
   @override
   void initState() {
@@ -87,6 +172,8 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     ticker?.cancel();
     confirmTimer?.cancel();
+    _hopC.dispose();
+    _glowC.dispose();
     super.dispose();
   }
 
@@ -100,11 +187,22 @@ class _GameScreenState extends State<GameScreen> {
     targets = [];
     submitted = false;
     confirmRestart = false;
+    hop = null;
+    _hopC.value = 1;
   }
 
   void _buzz([bool strong = false]) {
     if (!widget.storage.haptics) return;
     strong ? HapticFeedback.mediumImpact() : HapticFeedback.selectionClick();
+  }
+
+  void _startHop(int id, Pos from, Pos to) {
+    hop = _Hop(id, from, to);
+    if (reduceMotion(context)) {
+      _hopC.value = 1;
+    } else {
+      _hopC.forward(from: 0);
+    }
   }
 
   void _onTap(Pos p) {
@@ -147,15 +245,20 @@ class _GameScreenState extends State<GameScreen> {
     final removedId = ids.remove(m.over)!;
     ids[m.to] = movedId;
     ghosts[removedId] = m.over;
-    Timer(const Duration(milliseconds: 600), () {
+    Timer(const Duration(milliseconds: 900), () {
       if (mounted) setState(() => ghosts.remove(removedId));
     });
+    _startHop(movedId, m.from, m.to);
     game.apply(m);
     hist.add(_Rec(m, movedId, removedId));
     selected = null;
     targets = [];
-    _buzz(true);
+    Timer(const Duration(milliseconds: 440), _landBuzz);
     if (game.isOver) _finish();
+  }
+
+  void _landBuzz() {
+    if (mounted) _buzz(true);
   }
 
   void _undo() {
@@ -167,6 +270,7 @@ class _GameScreenState extends State<GameScreen> {
       ids[r.move.from] = r.movedId;
       ids[r.move.over] = r.removedId;
       ghosts.remove(r.removedId);
+      _startHop(r.movedId, r.move.to, r.move.from);
       selected = null;
       targets = [];
       confirmRestart = false;
@@ -195,7 +299,7 @@ class _GameScreenState extends State<GameScreen> {
       isBest = await widget.storage.submitScore(widget.board.id, score.total);
       await widget.storage.addPoints(score.total);
     }
-    await Future.delayed(const Duration(milliseconds: 700));
+    await Future.delayed(const Duration(milliseconds: 1100));
     if (!mounted) return;
     _showResult(score, isBest);
   }
@@ -235,6 +339,8 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final still = reduceMotion(context);
+    final pegTheme = pegThemeById(widget.storage.pegTheme);
+    final boardTheme = boardThemeById(widget.storage.boardTheme);
     return Scaffold(
       body: TwilightBackground(
         child: SafeArea(
@@ -248,8 +354,7 @@ class _GameScreenState extends State<GameScreen> {
                   onPressed: () => Navigator.pop(context),
                 ),
                 Expanded(
-                  child: Text(widget.board.name,
-                      style: displayFont.copyWith(fontSize: 26)),
+                  child: Text(widget.board.name, style: displayFont.copyWith(fontSize: 26)),
                 ),
                 Text(widget.board.difficulty.label,
                     style: const TextStyle(color: lantern, fontSize: 16)),
@@ -268,29 +373,22 @@ class _GameScreenState extends State<GameScreen> {
             ),
             Expanded(
               child: LayoutBuilder(builder: (context, box) {
-                final cols = widget.board.cols + 1;
-                final rows = widget.board.rows + 1;
-                final cell = min(min(box.maxWidth / cols, box.maxHeight / rows), 64.0);
-                final geo = BoardGeometry(widget.board, cell);
+                final tb = TiltedBoard.fit(widget.board, box.maxWidth, box.maxHeight);
                 return Center(
                   child: GestureDetector(
+                    key: const ValueKey('board'),
                     behavior: HitTestBehavior.opaque,
                     onTapUp: (d) {
-                      final p = geo.hit(d.localPosition);
+                      final p = tb.hit(d.localPosition);
                       if (p != null) _onTap(p);
                     },
                     child: SizedBox(
-                      width: geo.width,
-                      height: geo.height,
-                      child: Stack(children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _BoardPainter(geo, targets.map((m) => m.to).toSet()),
-                          ),
-                        ),
-                        for (final e in ids.entries) _peg(e.value, e.key, geo, still),
-                        for (final e in ghosts.entries) _ghost(e.key, e.value, geo, still),
-                      ]),
+                      width: tb.size.width,
+                      height: tb.size.height,
+                      child: AnimatedBuilder(
+                        animation: Listenable.merge([_hopC, _glowC]),
+                        builder: (context, _) => _scene(tb, pegTheme, boardTheme, still),
+                      ),
                     ),
                   ),
                 );
@@ -331,17 +429,70 @@ class _GameScreenState extends State<GameScreen> {
         Text(value, style: displayFont.copyWith(fontSize: 26)),
       ]);
 
-  Widget _peg(int id, Pos p, BoardGeometry geo, bool still) {
-    final c = geo.centerOf(p);
-    final d = geo.cell * 0.76;
+  bool get _hopping => hop != null && _hopC.value < 1;
+
+  /// Flat (board-plane) position of a peg, including a hop in progress.
+  Offset _flatPos(TiltedBoard tb, int id, Pos p) {
+    final h = hop;
+    if (h != null && h.id == id && _hopC.value < 1) {
+      final t = Curves.easeInOut.transform(_hopC.value);
+      return Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), t)!;
+    }
+    return tb.flat.centerOf(p);
+  }
+
+  double _hopHeight(TiltedBoard tb, int id) {
+    final h = hop;
+    if (h != null && h.id == id && _hopC.value < 1) {
+      return sin(pi * _hopC.value) * tb.cell * 1.15;
+    }
+    return 0;
+  }
+
+  Widget _scene(TiltedBoard tb, PegTheme pt, BoardTheme bt, bool still) {
+    final glow = still ? 0.0 : _glowC.value;
+    // peg entries sorted back to front so nearer pegs overlap farther ones
+    final entries = ids.entries.map((e) {
+      final f = _flatPos(tb, e.value, e.key);
+      return (id: e.value, pos: e.key, flat: f, screen: tb.project(f));
+    }).toList()
+      ..sort((a, b) {
+        final am = a.id == hop?.id && _hopping ? 1 : 0;
+        final bm = b.id == hop?.id && _hopping ? 1 : 0;
+        if (am != bm) return am - bm;
+        return a.screen.dy.compareTo(b.screen.dy);
+      });
+    return Stack(clipBehavior: Clip.none, children: [
+      Positioned.fill(
+        child: CustomPaint(
+          painter: _BoardPainter(tb, bt, targets.map((m) => m.to).toSet(), glow),
+        ),
+      ),
+      Positioned.fill(
+        child: CustomPaint(
+          painter: _ShadowPainter(
+            tb,
+            [for (final e in entries) (e.screen, tb.pegSize(tb.scaleAtFlat(e.flat)), _hopHeight(tb, e.id))],
+          ),
+        ),
+      ),
+      for (final e in entries) _peg(tb, pt, e.id, e.pos, e.flat, e.screen, glow, still),
+      for (final g in ghosts.entries) _ghost(tb, pt, g.key, g.value, glow, still),
+    ]);
+  }
+
+  Widget _peg(TiltedBoard tb, PegTheme pt, int id, Pos p, Offset flat, Offset screen, double glow, bool still) {
+    final d = tb.pegSize(tb.scaleAtFlat(flat));
+    final lift = _hopHeight(tb, id);
     final sel = selected == p;
     final quick = still ? Duration.zero : const Duration(milliseconds: 130);
-    return AnimatedPositioned(
+    // sphere rests in its hole: centre sits above the hole centre
+    final cx = screen.dx;
+    final cy = screen.dy - d * 0.32 - lift;
+    return Positioned(
       key: ValueKey('peg$id'),
-      duration: still ? Duration.zero : const Duration(milliseconds: 260),
-      curve: Curves.easeInOutCubic,
-      left: c.dx - d / 2,
-      top: c.dy - d / 2,
+      left: cx - d / 2,
+      top: cy - d / 2,
       width: d,
       height: d,
       child: TweenAnimationBuilder<double>(
@@ -355,12 +506,12 @@ class _GameScreenState extends State<GameScreen> {
           builder: (_, t, child) => Transform.translate(
               offset: Offset(sin(t * pi * 6) * (1 - t) * 6, 0), child: child),
           child: AnimatedSlide(
-            offset: sel ? const Offset(0, -0.14) : Offset.zero,
+            offset: sel ? const Offset(0, -0.16) : Offset.zero,
             duration: quick,
             child: AnimatedScale(
-              scale: sel ? 1.12 : 1,
-              duration: quick,
-              child: _PegBody(selected: sel),
+              scale: sel ? 1.1 : 1 + 0.12 * sin(pi * (_hopping && hop!.id == id ? _hopC.value : 0)),
+              duration: _hopping && hop!.id == id ? Duration.zero : quick,
+              child: PegView(theme: pt, glow: (glow + id * 0.13) % 1, selected: sel),
             ),
           ),
         ),
@@ -368,9 +519,9 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _ghost(int id, Pos p, BoardGeometry geo, bool still) {
-    final c = geo.centerOf(p);
-    final d = geo.cell * 0.76;
+  Widget _ghost(TiltedBoard tb, PegTheme pt, int id, Pos p, double glow, bool still) {
+    final d = tb.pegSize(tb.scaleOf(p));
+    final c = tb.centerOf(p) - Offset(0, d * 0.32);
     return Positioned(
       key: ValueKey('ghost$id'),
       left: c.dx - d / 2,
@@ -380,176 +531,211 @@ class _GameScreenState extends State<GameScreen> {
       child: IgnorePointer(
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
-          duration: still ? const Duration(milliseconds: 200) : const Duration(milliseconds: 420),
-          builder: (_, t, _) => Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
-            if (!still)
-              Transform.scale(
-                scale: 1 + t * 1.1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: lantern.withValues(alpha: (1 - t) * 0.8), width: 2),
+          duration: still ? const Duration(milliseconds: 200) : const Duration(milliseconds: 800),
+          builder: (_, raw, _) {
+            // wait until the jumping peg flies overhead, then poof
+            final t = still ? raw : ((raw - 0.3) / 0.7).clamp(0.0, 1.0);
+            return Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
+              if (!still && t > 0) ...[
+                Transform.scale(
+                  scale: 1 + t * 1.3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: lantern.withValues(alpha: (1 - t) * 0.9), width: 2.5),
+                    ),
                   ),
                 ),
+                for (var i = 0; i < 6; i++)
+                  Transform.translate(
+                    offset: Offset(cos(i * pi / 3) * d * 0.9 * t, sin(i * pi / 3) * d * 0.9 * t - d * 0.2 * t),
+                    child: Container(
+                      width: d * 0.12 * (1 - t) + 1,
+                      height: d * 0.12 * (1 - t) + 1,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: pt.glow == pegThemes.first.glow ? lantern : pt.glow,
+                      ),
+                    ),
+                  ),
+              ],
+              Opacity(
+                opacity: 1 - t,
+                child: Transform.scale(
+                  scale: 1 - t * 0.5,
+                  child: PegView(theme: pt, glow: glow),
+                ),
               ),
-            Opacity(
-              opacity: 1 - t,
-              child: Transform.scale(scale: 1 - t * 0.3, child: const _PegBody(selected: false)),
-            ),
-          ]),
+            ]);
+          },
         ),
       ),
     );
   }
 }
 
-class _PegBody extends StatelessWidget {
-  const _PegBody({required this.selected});
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const RadialGradient(
-            center: Alignment(-0.3, -0.45),
-            radius: 1.0,
-            colors: [Color(0xFFFFE3A8), Color(0xFFE9A04A), Color(0xFFA85F1E), Color(0xFF4A230A)],
-            stops: [0.0, 0.3, 0.75, 1.0],
-          ),
-          border: Border.all(color: const Color(0xFF3A1B07), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: selected ? lantern.withValues(alpha: 0.95) : Colors.black87,
-              blurRadius: selected ? 20 : 5,
-              spreadRadius: selected ? 2 : 0,
-              offset: selected ? Offset.zero : const Offset(1, 3),
-            ),
-          ],
-        ),
-        // glossy highlight
-        child: LayoutBuilder(
-          builder: (_, c) => Stack(children: [
-            Positioned(
-              left: c.maxWidth * 0.2,
-              top: c.maxHeight * 0.12,
-              width: c.maxWidth * 0.42,
-              height: c.maxHeight * 0.26,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(c.maxWidth),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.white.withValues(alpha: 0.75), Colors.white.withValues(alpha: 0.0)],
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      );
-}
-
-class _BoardPainter extends CustomPainter {
-  _BoardPainter(this.geo, this.targets);
-  final BoardGeometry geo;
-  final Set<Pos> targets;
+class _ShadowPainter extends CustomPainter {
+  _ShadowPainter(this.tb, this.pegs);
+  final TiltedBoard tb;
+  final List<(Offset, double, double)> pegs; // screen pos, size, height
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cell = geo.cell;
-    // One merged outline (no seams between neighbouring cells).
-    var wood = Path();
-    for (final h in geo.def.holes) {
-      wood = Path.combine(
-        PathOperation.union,
-        wood,
-        Path()
-          ..addRRect(RRect.fromRectAndRadius(
-            Rect.fromCenter(center: geo.centerOf(h), width: cell * 1.2, height: cell * 1.2),
-            Radius.circular(cell * 0.3),
-          )),
+    for (final (pos, d, h) in pegs) {
+      final f = 1 - (h / (tb.cell * 1.5)).clamp(0.0, 0.5);
+      canvas.drawOval(
+        Rect.fromCenter(center: pos + Offset(d * 0.08, d * 0.02), width: d * 0.95 * f, height: d * 0.42 * f),
+        Paint()..color = Colors.black.withValues(alpha: 0.5 * f)..maskFilter = MaskFilter.blur(BlurStyle.normal, d * 0.1),
       );
-    }
-    final bounds = wood.getBounds();
-
-    // lantern glow + drop shadow under the board
-    canvas.drawPath(wood,
-        Paint()..color = lantern.withValues(alpha: 0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 26));
-    canvas.drawPath(wood.shift(const Offset(0, 7)),
-        Paint()..color = Colors.black87..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9));
-
-    // wood body
-    canvas.drawPath(
-      wood,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFC48A52), Color(0xFF9A6234), Color(0xFF6B4423)],
-        ).createShader(bounds),
-    );
-
-    // wood grain, clipped to the board
-    canvas.save();
-    canvas.clipPath(wood);
-    final grain = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = const Color(0xFF3B200C).withValues(alpha: 0.22);
-    for (var y = bounds.top; y < bounds.bottom; y += cell * 0.17) {
-      final p = Path()..moveTo(bounds.left, y);
-      for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
-        p.quadraticBezierTo(x + cell * 0.25, y + sin(x * 0.07 + y * 0.13) * 2.4, x + cell * 0.5, y);
-      }
-      canvas.drawPath(p, grain);
-    }
-    // carved bevel: light edge top-left, dark edge bottom-right
-    canvas.drawPath(wood.shift(const Offset(2.5, 2.5)),
-        Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
-    canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)),
-        Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = const Color(0xFFFFD9A0).withValues(alpha: 0.45));
-    // moss patches
-    final moss = Paint()..color = const Color(0xFF3F7A3A).withValues(alpha: 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-    canvas.drawCircle(bounds.topLeft + Offset(cell * 2.1, cell * 0.2), cell * 0.35, moss);
-    canvas.drawCircle(bounds.bottomRight - Offset(cell * 2.1, cell * 0.15), cell * 0.4, moss);
-    canvas.drawCircle(bounds.centerLeft + Offset(cell * 0.2, cell * 0.4), cell * 0.28, moss);
-    canvas.restore();
-    canvas.drawPath(wood,
-        Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = const Color(0xFF2E1808));
-
-    // recessed holes
-    for (final h in geo.def.holes) {
-      final c = geo.centerOf(h);
-      final r = cell * 0.37;
-      // lower lip catches light
-      canvas.drawCircle(c + const Offset(0, 2), r + 1, Paint()..color = const Color(0x66FFE2B0));
-      canvas.drawCircle(
-        c,
-        r,
-        Paint()
-          ..shader = const RadialGradient(
-            center: Alignment(0, 0.55),
-            radius: 1.0,
-            colors: [Color(0xFF4A2A14), Color(0xFF1B0D05)],
-          ).createShader(Rect.fromCircle(center: c, radius: r)),
-      );
-      // inner shadow from the top edge
-      canvas.drawArc(Rect.fromCircle(center: c, radius: r - 1.5), pi * 1.05, pi * 0.9, false,
-          Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = Colors.black.withValues(alpha: 0.6));
-      if (targets.contains(h)) {
-        canvas.drawCircle(c, r * 1.25,
-            Paint()..color = lantern.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
-        canvas.drawCircle(c, r * 0.55, Paint()..color = lantern.withValues(alpha: 0.85));
-        canvas.drawCircle(c, r * 0.9,
-            Paint()..color = const Color(0xFFFFE0A0)..style = PaintingStyle.stroke..strokeWidth = 2.5);
-      }
     }
   }
 
   @override
-  bool shouldRepaint(_BoardPainter old) => old.targets != targets || old.geo.cell != geo.cell;
+  bool shouldRepaint(_ShadowPainter old) => true;
+}
+
+class _BoardPainter extends CustomPainter {
+  _BoardPainter(this.tb, this.theme, this.targets, this.glow);
+  final TiltedBoard tb;
+  final BoardTheme theme;
+  final Set<Pos> targets;
+  final double glow;
+
+  Path? _wood;
+  Path get wood => _wood ??= _buildWood();
+
+  Path _buildWood() {
+    final cell = tb.cell;
+    var path = Path();
+    for (final h in tb.flat.def.holes) {
+      path = Path.combine(
+        PathOperation.union,
+        path,
+        Path()
+          ..addRRect(RRect.fromRectAndRadius(
+            Rect.fromCenter(center: tb.flat.centerOf(h), width: cell * 1.2, height: cell * 1.2),
+            Radius.circular(cell * 0.3),
+          )),
+      );
+    }
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cell = tb.cell;
+    final m = tb.matrix.storage;
+    final bounds = wood.getBounds();
+    final pulse = 0.5 + 0.5 * sin(glow * 2 * pi);
+
+    // soft shadow on the table
+    canvas.save();
+    canvas.translate(0, tb.thick + 6);
+    canvas.transform(m);
+    canvas.drawPath(wood, Paint()..color = Colors.black.withValues(alpha: 0.75)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
+    canvas.restore();
+
+    // lantern glow around the board
+    canvas.save();
+    canvas.transform(m);
+    canvas.drawPath(wood, Paint()..color = lantern.withValues(alpha: 0.10 + 0.06 * pulse)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30));
+    canvas.restore();
+
+    // thickness: stack of darker copies pushed down the screen
+    final steps = tb.thick.ceil();
+    for (var i = steps; i >= 1; i--) {
+      canvas.save();
+      canvas.translate(0, i.toDouble());
+      canvas.transform(m);
+      canvas.drawPath(wood, Paint()..color = Color.lerp(theme.body[2], theme.side, i / steps)!);
+      canvas.restore();
+    }
+
+    canvas.save();
+    canvas.transform(m);
+    // top surface
+    canvas.drawPath(
+      wood,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: theme.body,
+        ).createShader(bounds),
+    );
+    canvas.save();
+    canvas.clipPath(wood);
+    if (theme.stone) {
+      final rnd = Random(3);
+      for (var i = 0; i < 260; i++) {
+        final o = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
+        canvas.drawCircle(o, cell * (0.02 + rnd.nextDouble() * 0.05),
+            Paint()..color = (rnd.nextBool() ? Colors.black : Colors.white).withValues(alpha: 0.10));
+      }
+      final crack = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.1..color = theme.grain.withValues(alpha: 0.5);
+      for (var i = 0; i < 7; i++) {
+        final a = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
+        final p = Path()..moveTo(a.dx, a.dy);
+        var cur = a;
+        for (var k = 0; k < 4; k++) {
+          cur += Offset((rnd.nextDouble() - 0.5) * cell * 0.7, (rnd.nextDouble() - 0.2) * cell * 0.6);
+          p.lineTo(cur.dx, cur.dy);
+        }
+        canvas.drawPath(p, crack);
+      }
+    } else {
+      final grain = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = theme.grain.withValues(alpha: 0.22);
+      for (var y = bounds.top; y < bounds.bottom; y += cell * 0.17) {
+        final p = Path()..moveTo(bounds.left, y);
+        for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
+          p.quadraticBezierTo(x + cell * 0.25, y + sin(x * 0.07 + y * 0.13) * 2.4, x + cell * 0.5, y);
+        }
+        canvas.drawPath(p, grain);
+      }
+    }
+    // carved bevel
+    canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
+    canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.white.withValues(alpha: 0.3));
+    // moss
+    final moss = Paint()..color = theme.moss.withValues(alpha: theme.stone ? 0.7 : 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final mossSpots = theme.stone ? 7 : 3;
+    final mr = Random(8);
+    for (var i = 0; i < mossSpots; i++) {
+      final x = bounds.left + mr.nextDouble() * bounds.width;
+      final y = bounds.top + (i.isEven ? 0.1 : 0.9) * bounds.height + (mr.nextDouble() - 0.5) * cell;
+      canvas.drawCircle(Offset(x, y), cell * (0.3 + mr.nextDouble() * 0.25), moss);
+    }
+    canvas.restore();
+    canvas.drawPath(wood, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = Colors.black.withValues(alpha: 0.6));
+
+    // recessed holes
+    for (final h in tb.flat.def.holes) {
+      final c = tb.flat.centerOf(h);
+      final r = cell * 0.37;
+      canvas.drawCircle(c + const Offset(0, 2), r + 1, Paint()..color = Colors.white.withValues(alpha: 0.25));
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(0, 0.55),
+            radius: 1.0,
+            colors: [theme.holeInner, theme.holeOuter],
+          ).createShader(Rect.fromCircle(center: c, radius: r)),
+      );
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r - 1.5), pi * 1.05, pi * 0.9, false,
+          Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = Colors.black.withValues(alpha: 0.6));
+      if (targets.contains(h)) {
+        canvas.drawCircle(c, r * 1.3, Paint()..color = lantern.withValues(alpha: 0.45 + 0.25 * pulse)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+        canvas.drawCircle(c, r * 0.55, Paint()..color = lantern.withValues(alpha: 0.85));
+        canvas.drawCircle(c, r * (0.9 + 0.08 * pulse), Paint()..color = const Color(0xFFFFE0A0)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_BoardPainter old) => true;
 }
 
 class _ResultDialog extends StatelessWidget {
