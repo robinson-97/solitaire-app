@@ -15,6 +15,8 @@ void main() {
     expect(find.text('Hopstone'), findsOneWidget);
     await t.scrollUntilVisible(find.text('Classic English'), 200,
         scrollable: find.byType(Scrollable).first);
+    await t.ensureVisible(find.text('Classic English'));
+    await t.pump();
     await t.tap(find.text('Classic English'));
     await t.pump(const Duration(milliseconds: 100));
     await t.pump(const Duration(milliseconds: 600));
