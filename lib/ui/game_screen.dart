@@ -9,6 +9,7 @@ import '../game/peg_game.dart';
 import '../sfx.dart';
 import '../storage.dart';
 import 'background.dart';
+import 'fx.dart';
 import 'peg_view.dart';
 import 'styles.dart';
 import 'theme.dart';
@@ -158,6 +159,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   late final AnimationController _hopC =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 640), value: 1);
+  late final AnimationController _landC =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 950));
+  Pos? landAt;
+  bool _landFired = false;
   late final AnimationController _glowC =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
 
@@ -165,6 +170,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _reset();
+    _hopC.addListener(_onHopTick);
     ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && game.inProgress && !game.isOver) setState(() {});
     });
@@ -175,6 +181,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ticker?.cancel();
     confirmTimer?.cancel();
     _hopC.dispose();
+    _landC.dispose();
     _glowC.dispose();
     super.dispose();
   }
@@ -198,8 +205,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     strong ? HapticFeedback.mediumImpact() : HapticFeedback.selectionClick();
   }
 
+  void _onHopTick() {
+    if (!_landFired && hop != null && _hopC.value >= _arcEnd) {
+      _landFired = true;
+      landAt = hop!.to;
+      if (!reduceMotion(context)) _landC.forward(from: 0);
+    }
+  }
+
   void _startHop(int id, Pos from, Pos to) {
     hop = _Hop(id, from, to);
+    _landFired = false;
     if (reduceMotion(context)) {
       _hopC.value = 1;
     } else {
@@ -418,7 +434,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       width: tb.size.width,
                       height: tb.size.height,
                       child: AnimatedBuilder(
-                        animation: Listenable.merge([_hopC, _glowC]),
+                        animation: Listenable.merge([_hopC, _glowC, _landC]),
                         builder: (context, _) => _scene(tb, pegTheme, boardTheme, still),
                       ),
                     ),
@@ -498,27 +514,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   double _hopHeight(TiltedBoard tb, int id) => _isHopper(id) ? _pose(_hopC.value, tb.cell).lift : 0;
 
-  /// Sparkle trail behind the flying peg and a ripple where it lands.
-  _HopFx _hopFx(TiltedBoard tb, PegTheme pt) {
+  Color _fxColor(PegTheme pt) => pt.glowAlpha > 0 ? pt.glow : lantern;
+
+  /// Positions of the sparkle trail behind the flying peg.
+  List<(Offset, double, double)> _trailPoints(TiltedBoard tb) {
     final h = hop!;
     final t = _hopC.value;
-    final color = pt.glowAlpha > 0 ? pt.glow : lantern;
-    final trail = <(Offset, double, double)>[]; // position, radius, alpha
-    if (t < _arcEnd) {
-      for (var k = 1; k <= 7; k++) {
-        final tt = t - k * 0.028;
-        if (tt <= 0) continue;
-        final pose = _pose(tt, tb.cell);
-        final flat = Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), pose.move)!;
-        final d = tb.pegSize(tb.scaleAtFlat(flat));
-        final pos = tb.project(flat) - Offset(0, d * 0.32 + pose.lift);
-        final f = 1 - k / 8;
-        trail.add((pos, d * 0.2 * f, 0.55 * f));
-      }
+    final out = <(Offset, double, double)>[];
+    if (t >= _arcEnd) return out;
+    for (var k = 1; k <= 7; k++) {
+      final tt = t - k * 0.028;
+      if (tt <= 0) continue;
+      final pose = _pose(tt, tb.cell);
+      final flat = Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), pose.move)!;
+      final d = tb.pegSize(tb.scaleAtFlat(flat));
+      final pos = tb.project(flat) - Offset(0, d * 0.32 + pose.lift);
+      final f = 1 - k / 8;
+      out.add((pos, d * 0.3 * f, 0.9 * f));
     }
-    double? ring;
-    if (t >= _arcEnd) ring = (t - _arcEnd) / (1 - _arcEnd);
-    return _HopFx(color, trail, ring == null ? null : tb.centerOf(h.to), ring ?? 0, tb.scaleOf(h.to));
+    return out;
   }
 
   Widget _scene(TiltedBoard tb, PegTheme pt, BoardTheme bt, bool still) {
@@ -548,10 +562,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         ),
       ),
-      if (_hopping && !still)
-        Positioned.fill(child: CustomPaint(painter: _HopFxPainter(tb, _hopFx(tb, pt)))),
+      if (!still && _landC.isAnimating && landAt != null)
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _LandPainter(pt.fx, _fxColor(pt), tb.centerOf(landAt!), tb.pegSize(tb.scaleOf(landAt!)), _landC.value, true),
+          ),
+        ),
+      if (_hopping && !still && pt.fx != FxKind.none)
+        Positioned.fill(child: CustomPaint(painter: _TrailPainter(pt.fx, _fxColor(pt), _trailPoints(tb)))),
       for (final e in entries) _peg(tb, pt, e.id, e.pos, e.flat, e.screen, glow, still),
       for (final g in ghosts.entries) _ghost(tb, pt, g.key, g.value, glow, still),
+      if (!still && _landC.isAnimating && landAt != null)
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _LandPainter(pt.fx, _fxColor(pt), tb.centerOf(landAt!), tb.pegSize(tb.scaleOf(landAt!)), _landC.value, false),
+          ),
+        ),
     ]);
   }
 
@@ -653,42 +679,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 }
 
-class _HopFx {
-  _HopFx(this.color, this.trail, this.landing, this.ring, this.scale);
+class _TrailPainter extends CustomPainter {
+  _TrailPainter(this.kind, this.color, this.trail);
+  final FxKind kind;
   final Color color;
-  final List<(Offset, double, double)> trail;
-  final Offset? landing;
-  final double ring;
-  final double scale;
-}
-
-class _HopFxPainter extends CustomPainter {
-  _HopFxPainter(this.tb, this.fx);
-  final TiltedBoard tb;
-  final _HopFx fx;
+  final List<(Offset, double, double)> trail; // position, radius, alpha
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final (pos, r, a) in fx.trail) {
-      canvas.drawCircle(pos, r * 1.8, Paint()..color = fx.color.withValues(alpha: a * 0.35)..maskFilter = MaskFilter.blur(BlurStyle.normal, r));
-      canvas.drawCircle(pos, r * 0.55, Paint()..color = Colors.white.withValues(alpha: a));
-    }
-    final c = fx.landing;
-    if (c != null) {
-      for (var k = 0; k < 2; k++) {
-        final v = (fx.ring - k * 0.18).clamp(0.0, 1.0);
-        if (v <= 0) continue;
-        final w = tb.cell * fx.scale * (0.7 + 1.5 * v);
-        canvas.drawOval(
-          Rect.fromCenter(center: c, width: w, height: w * 0.45),
-          Paint()..style = PaintingStyle.stroke..strokeWidth = 2.4 * (1 - v) + 0.5..color = Colors.white.withValues(alpha: (1 - v) * 0.7),
-        );
-      }
+    for (var i = 0; i < trail.length; i++) {
+      final (pos, r, a) = trail[i];
+      drawParticle(canvas, kind, pos + Offset(0, -i * 1.5), r, a, color, i * 0.9);
     }
   }
 
   @override
-  bool shouldRepaint(_HopFxPainter old) => true;
+  bool shouldRepaint(_TrailPainter old) => true;
+}
+
+class _LandPainter extends CustomPainter {
+  _LandPainter(this.kind, this.color, this.at, this.px, this.v, this.ripple);
+  final bool ripple;
+  final FxKind kind;
+  final Color color;
+  final Offset at;
+  final double px;
+  final double v;
+
+  @override
+  void paint(Canvas canvas, Size size) => paintLanding(canvas, kind, at, px, v, color, ripple: ripple);
+
+  @override
+  bool shouldRepaint(_LandPainter old) => true;
 }
 
 class _ShadowPainter extends CustomPainter {
@@ -782,27 +804,57 @@ class _BoardPainter extends CustomPainter {
     );
     canvas.save();
     canvas.clipPath(wood);
-    if (theme.kind == BoardKind.stone || theme.kind == BoardKind.marble || theme.kind == BoardKind.crystal) {
+    if (theme.kind != BoardKind.wood) {
       final rnd = Random(3);
       for (var i = 0; i < 260; i++) {
         final o = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
         canvas.drawCircle(o, cell * (0.02 + rnd.nextDouble() * 0.05),
             Paint()..color = (rnd.nextBool() ? Colors.black : Colors.white).withValues(alpha: 0.10));
       }
+      final glowy = theme.kind != BoardKind.stone && theme.kind != BoardKind.marble;
       final crackAlpha = theme.kind == BoardKind.stone ? 0.5 : 0.35 + 0.3 * pulse;
+      final crackColor = theme.grain.withValues(alpha: crackAlpha);
       final crack = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = theme.kind == BoardKind.stone ? 1.1 : 1.6
-        ..color = (theme.kind == BoardKind.stone ? theme.grain : theme.grain).withValues(alpha: crackAlpha);
-      for (var i = 0; i < 7; i++) {
-        final a = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
-        final p = Path()..moveTo(a.dx, a.dy);
-        var cur = a;
-        for (var k = 0; k < 4; k++) {
-          cur += Offset((rnd.nextDouble() - 0.5) * cell * 0.7, (rnd.nextDouble() - 0.2) * cell * 0.6);
-          p.lineTo(cur.dx, cur.dy);
+        ..strokeWidth = theme.kind == BoardKind.stone ? 1.1 : (theme.kind == BoardKind.lava ? 2.4 : 1.6)
+        ..color = crackColor;
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..color = theme.accent.withValues(alpha: 0.25 + 0.2 * pulse)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      if (theme.kind == BoardKind.rune) {
+        // glowing carved glyphs
+        final gr = Random(21);
+        for (var i = 0; i < 16; i++) {
+          final o = Offset(bounds.left + gr.nextDouble() * bounds.width, bounds.top + gr.nextDouble() * bounds.height);
+          final sz = cell * (0.12 + gr.nextDouble() * 0.1);
+          final g = Path();
+          switch (i % 4) {
+            case 0:
+              g..moveTo(o.dx, o.dy - sz)..lineTo(o.dx, o.dy + sz)..moveTo(o.dx - sz * 0.7, o.dy - sz * 0.2)..lineTo(o.dx + sz * 0.7, o.dy + sz * 0.2);
+            case 1:
+              g..moveTo(o.dx - sz, o.dy + sz)..lineTo(o.dx, o.dy - sz)..lineTo(o.dx + sz, o.dy + sz);
+            case 2:
+              g..addArc(Rect.fromCircle(center: o, radius: sz), 0.4, 4.6)..moveTo(o.dx, o.dy)..lineTo(o.dx + sz * 0.8, o.dy - sz * 0.5);
+            default:
+              g..moveTo(o.dx - sz, o.dy - sz)..lineTo(o.dx + sz, o.dy + sz)..moveTo(o.dx + sz, o.dy - sz)..lineTo(o.dx - sz, o.dy + sz);
+          }
+          canvas.drawPath(g, glowPaint);
+          canvas.drawPath(g, crack..strokeWidth = 1.6);
         }
-        canvas.drawPath(p, crack);
+      } else {
+        for (var i = 0; i < (theme.kind == BoardKind.lava ? 11 : 7); i++) {
+          final a = Offset(bounds.left + rnd.nextDouble() * bounds.width, bounds.top + rnd.nextDouble() * bounds.height);
+          final p = Path()..moveTo(a.dx, a.dy);
+          var cur = a;
+          for (var k = 0; k < 4; k++) {
+            cur += Offset((rnd.nextDouble() - 0.5) * cell * 0.7, (rnd.nextDouble() - 0.2) * cell * 0.6);
+            p.lineTo(cur.dx, cur.dy);
+          }
+          if (glowy) canvas.drawPath(p, glowPaint);
+          canvas.drawPath(p, crack);
+        }
       }
     } else {
       final grain = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = theme.grain.withValues(alpha: 0.22);

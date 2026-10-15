@@ -42,7 +42,7 @@ class _PegPainter extends CustomPainter {
     }
 
     final rect = Rect.fromCircle(center: c, radius: r);
-    final glassy = theme.kind == PegKind.glass;
+    final glassy = theme.kind == PegKind.glass || theme.kind == PegKind.frost;
     canvas.drawCircle(
       c,
       r,
@@ -107,6 +107,34 @@ class _PegPainter extends CustomPainter {
         star.close();
         canvas.drawPath(star, Paint()..color = const Color(0xFF7A4A08).withValues(alpha: 0.35));
         canvas.drawPath(star, Paint()..color = const Color(0xFFFFF3B0).withValues(alpha: 0.55 + 0.4 * pulse)..style = PaintingStyle.stroke..strokeWidth = 1.4);
+      case PegKind.frost:
+        final fl = Paint()..color = Colors.white.withValues(alpha: 0.65)..strokeWidth = 1.3..strokeCap = StrokeCap.round;
+        for (var i = 0; i < 3; i++) {
+          final a = i * pi / 3;
+          final d = Offset(cos(a), sin(a)) * r * 0.6;
+          canvas.drawLine(c - d, c + d, fl);
+          final tip = Offset(cos(a), sin(a));
+          for (final sgn in [-1, 1]) {
+            final base = c + tip * sgn.toDouble() * r * 0.36;
+            final side = Offset(-tip.dy, tip.dx) * r * 0.13;
+            canvas.drawLine(base, base + tip * sgn.toDouble() * r * 0.14 + side, fl);
+            canvas.drawLine(base, base + tip * sgn.toDouble() * r * 0.14 - side, fl);
+          }
+        }
+        canvas.drawCircle(c, r * 0.12, Paint()..color = Colors.white.withValues(alpha: 0.6 + 0.3 * pulse));
+      case PegKind.mushroom:
+        final cap = Path()..moveTo(0, 0)..lineTo(s.width, 0)..lineTo(s.width, r * 0.9);
+        for (var i = 4; i >= 0; i--) {
+          final x = s.width * i / 4;
+          cap.quadraticBezierTo(x + s.width * 0.125, r * 1.15, x, r * 0.9);
+        }
+        cap.close();
+        canvas.drawPath(cap, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFEE5A4A), Color(0xFFA81F1F)]).createShader(Rect.fromLTWH(0, 0, s.width, r * 1.2)));
+        final dot = Paint()..color = const Color(0xFFFFF3E0).withValues(alpha: 0.95);
+        canvas.drawCircle(Offset(r * 0.55, r * 0.35), r * 0.17, dot);
+        canvas.drawCircle(Offset(r * 1.1, r * 0.22), r * 0.14, dot);
+        canvas.drawCircle(Offset(r * 1.5, r * 0.58), r * 0.15, dot);
+        canvas.drawCircle(Offset(r * 0.95, r * 0.65), r * 0.1, dot);
       case PegKind.ember:
         final facet = Paint()..color = const Color(0xFF3A0A02).withValues(alpha: 0.35)..strokeWidth = 1.2..style = PaintingStyle.stroke;
         for (var i = 0; i < 6; i++) {

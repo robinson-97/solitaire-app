@@ -55,9 +55,9 @@ void main() {
     final s = await _storage();
     final u = Unlocks(s);
     expect(u.pegUnlocked('ember'), isFalse);
-    await s.submitScore('classic', 700);
+    await s.submitScore('prism-5', 500);
     expect(u.pegUnlocked('ember'), isTrue);
-    expect(u.pegUnlocked('moonstone'), isTrue);
+    expect(u.pegUnlocked('moonstone'), isFalse);
     expect(u.snapshot().contains('peg:ember'), isTrue);
     expect(u.nextUnlock(), isNotNull);
   });

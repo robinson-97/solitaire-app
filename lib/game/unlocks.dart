@@ -11,17 +11,24 @@ class UnlockRule {
 
 /// Edit these numbers to rebalance the game. Items without a rule are free.
 const pegRules = <String, UnlockRule>{
-  'firefly': UnlockRule('triangle', 300),
-  'geode': UnlockRule('french', 450),
-  'moonstone': UnlockRule('classic', 500),
-  'ember': UnlockRule('classic', 700),
+  // Glimmerwood
+  'firefly': UnlockRule('sprout-5', 400),
+  'moonstone': UnlockRule('sapling-5', 450),
+  'mushroom': UnlockRule('grove-5', 450),
+  // Crystal Cavern
+  'geode': UnlockRule('facet-5', 450),
+  'ember': UnlockRule('prism-5', 500),
+  // Starfall Peak
   'starlight': UnlockRule('comet-5', 550),
+  'frost': UnlockRule('nova-5', 520),
 };
 
 const boardRules = <String, UnlockRule>{
-  'mossy': UnlockRule('sapling-3', 350),
-  'crystal': UnlockRule('french', 650),
-  'marble': UnlockRule('comet-5', 600),
+  'mossy': UnlockRule('sapling-3', 400),
+  'crystal': UnlockRule('lumen-3', 450),
+  'rune': UnlockRule('lumen-5', 500),
+  'marble': UnlockRule('comet-3', 500),
+  'lava': UnlockRule('meteor-5', 520),
 };
 
 /// Rewards that a given board can earn, for display on level/board cards.
@@ -96,6 +103,8 @@ String pegLabel(String id) => const {
       'moonstone': 'Moonstone',
       'ember': 'Ember Crystal',
       'starlight': 'Starlight Gold',
+      'frost': 'Frost Pearl',
+      'mushroom': 'Mushroom',
     }[id]!;
 
 String boardLabel(String id) => const {
@@ -103,4 +112,6 @@ String boardLabel(String id) => const {
       'mossy': 'Mossy Stone',
       'crystal': 'Crystal Slab',
       'marble': 'Frost Marble',
+      'rune': 'Rune Stone',
+      'lava': 'Lava Rock',
     }[id]!;
