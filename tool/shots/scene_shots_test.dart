@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/catalog_data.dart';
 import 'package:hopstone/ui/scenes/scene_view.dart';
+import 'package:hopstone/ui/shaders.dart';
 
 const _scenes = String.fromEnvironment('SCENES', defaultValue: 'forest');
 const _out = String.fromEnvironment('OUT', defaultValue: '/tmp/shots');
@@ -23,6 +24,8 @@ void main() {
     tester.view.devicePixelRatio = _ratio;
     addTearDown(tester.view.reset);
     Directory(_out).createSync(recursive: true);
+    await tester.runAsync(Gfx.init);
+    stdout.writeln('world shader: ${Gfx.world != null}');
     final ids = _scenes == 'all' ? [for (final w in worldCatalog) w.id] : _scenes.split(',');
     for (final id in ids) {
       for (final u in _us.split(',')) {

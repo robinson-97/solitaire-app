@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'shader_backdrop.dart';
 import 'kit.dart';
 import 'registry.dart';
 
@@ -44,6 +45,13 @@ class _SceneBackgroundState extends State<SceneBackground> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final shaderId = widget.world == 'menu' ? 'menu' : (widget.world.startsWith('neon:') ? widget.world.substring(5) : null);
+    if (shaderId != null && shadersReady) {
+      return Stack(fit: StackFit.expand, children: [
+        Positioned.fill(child: ShaderBackdrop(world: shaderId, freezeAt: widget.freezeAt == null ? null : widget.freezeAt! * 60)),
+        widget.child,
+      ]);
+    }
     final spec = sceneFor(widget.world);
     return Stack(fit: StackFit.expand, children: [
       Positioned.fill(child: RepaintBoundary(child: SceneStack(spec: spec, anim: _c))),

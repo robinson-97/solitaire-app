@@ -57,6 +57,7 @@ flutter:
   shaders:
     - shaders/peg.frag
     - shaders/gloss.frag
+    - shaders/world.frag
   assets:
     - assets/sfx/
   fonts:
