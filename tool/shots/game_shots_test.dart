@@ -17,6 +17,8 @@ import 'package:hopstone/ui/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _scenes = String.fromEnvironment('SCENES', defaultValue: 'forest');
+const _board = String.fromEnvironment('BOARD', defaultValue: 'oak');
+const _peg = String.fromEnvironment('PEG', defaultValue: 'acorn');
 const _out = String.fromEnvironment('OUT', defaultValue: '/tmp/shots');
 
 Future<void> _font(String family, String path) async {
@@ -35,7 +37,7 @@ void main() {
     addTearDown(t.view.reset);
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': true});
+    SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': true, 'board_theme': _board, 'peg_theme': _peg});
     final storage = await Storage.open();
     final ids = _scenes == 'all' ? [for (final w in worldCatalog) w.id] : _scenes.split(',');
 
@@ -57,7 +59,7 @@ void main() {
       ));
       await t.pump(const Duration(milliseconds: 100));
       await t.pump(const Duration(milliseconds: 900));
-      await shot(key, '${id}_game', 1.0);
+      await shot(key, '${id}_game_$_board', 1.0);
 
       final ck = GlobalKey();
       await t.pumpWidget(RepaintBoundary(

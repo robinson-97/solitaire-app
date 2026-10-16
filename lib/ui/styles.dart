@@ -7,9 +7,10 @@ enum PegKind {
   soccer, basketball, tennis, baseball, billiard, golf,
   pixel, disco, vinyl, smiley, donut, planet, cookie,
   material,
+  aurora, galaxy, tide, clockwork, storm, plasma, koi, lantern, radar, peppermint,
 }
 
-enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon }
+enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon, sakura, galaxy, ocean, candy, aurora }
 
 /// A fully shader-drawn material (see shaders/peg.frag).
 class MaterialSpec {
@@ -130,6 +131,27 @@ const pegThemes = [
       colors: [Color(0xFFFFFFFF), Color(0xFFF2F0FA), Color(0xFFC9B8E8), Color(0xFF6A6A9A)],
       glow: Color(0xFFD7C8FF), glowAlpha: 0.3,
       mat: MaterialSpec(6, Color(0xFFF2F0FA), Color(0xFF000000), Color(0xFF000000))),
+  // ---- Living lights (animated)
+  PegTheme(id: 'aurora', name: 'Aurora Orb', kind: PegKind.aurora, category: 'Living lights', fx: FxKind.frost,
+      colors: [Color(0xFFB8FFE0), Color(0xFF1E6A78), Color(0xFF123E58), Color(0xFF071A2E)], glow: Color(0xFF6BFFB0), glowAlpha: 0.5),
+  PegTheme(id: 'galaxy', name: 'Galaxy Marble', kind: PegKind.galaxy, category: 'Living lights', fx: FxKind.star,
+      colors: [Color(0xFFE6D8FF), Color(0xFF3A2A8A), Color(0xFF1C1250), Color(0xFF080420)], glow: Color(0xFFB59BFF), glowAlpha: 0.5),
+  PegTheme(id: 'tide', name: 'Tide Globe', kind: PegKind.tide, category: 'Living lights', fx: FxKind.puff, fxColor: Color(0xFFBDEBFF),
+      colors: [Color(0xFFD6F4FF), Color(0xFF3FA6E0), Color(0xFF1C6AB0), Color(0xFF0A3668)], glow: Color(0xFF7FD6FF), glowAlpha: 0.35),
+  PegTheme(id: 'clockwork', name: 'Clockwork Gear', kind: PegKind.clockwork, category: 'Living lights', fx: FxKind.dust,
+      colors: [Color(0xFFFFE6B0), Color(0xFFC9923A), Color(0xFF8A5A1E), Color(0xFF3A230A)], glow: Color(0xFFFFC46B), glowAlpha: 0.2),
+  PegTheme(id: 'storm', name: 'Storm Orb', kind: PegKind.storm, category: 'Living lights', fx: FxKind.crystal,
+      colors: [Color(0xFFD6DCEE), Color(0xFF59607A), Color(0xFF353A52), Color(0xFF12141F)], glow: Color(0xFFBFD0FF), glowAlpha: 0.4),
+  PegTheme(id: 'plasma', name: 'Plasma Ball', kind: PegKind.plasma, category: 'Living lights', fx: FxKind.crystal,
+      colors: [Color(0xFFFFD6FF), Color(0xFF8A2AC8), Color(0xFF4A1488), Color(0xFF12052E)], glow: Color(0xFFE05AFF), glowAlpha: 0.6),
+  PegTheme(id: 'koi', name: 'Koi Pond', kind: PegKind.koi, category: 'Living lights', fx: FxKind.puff, fxColor: Color(0xFFBFF0F0),
+      colors: [Color(0xFFD6FFF4), Color(0xFF3CB0A8), Color(0xFF1E7A82), Color(0xFF0A3A48)], glow: Color(0xFF7FFFE0), glowAlpha: 0.25),
+  PegTheme(id: 'lantern', name: 'Paper Lantern', kind: PegKind.lantern, category: 'Living lights', fx: FxKind.ember,
+      colors: [Color(0xFFFFE0A0), Color(0xFFE5482E), Color(0xFFB02A1E), Color(0xFF4A0E08)], glow: Color(0xFFFF9A4A), glowAlpha: 0.55),
+  PegTheme(id: 'radar', name: 'Radar Pulse', kind: PegKind.radar, category: 'Living lights', fx: FxKind.pixel,
+      colors: [Color(0xFFC8FFD6), Color(0xFF1E8A4A), Color(0xFF0E5A30), Color(0xFF031A0C)], glow: Color(0xFF5AFF9A), glowAlpha: 0.4),
+  PegTheme(id: 'peppermint', name: 'Peppermint Swirl', kind: PegKind.peppermint, category: 'Living lights', fx: FxKind.sprinkles,
+      colors: [Color(0xFFFFFFFF), Color(0xFFFFE6EC), Color(0xFFE88AA0), Color(0xFF8A2A48)]),
   PegTheme(id: 'planet', name: 'Ringed Planet', kind: PegKind.planet, category: 'Space', fx: FxKind.star,
       colors: [Color(0xFFFFE9C0), Color(0xFFF3B66A), Color(0xFFC2742E), Color(0xFF6A3410)],
       glow: Color(0xFFFFC27A), glowAlpha: 0.3),
@@ -186,6 +208,26 @@ const boardThemes = [
       [Color(0xFF241A5A), Color(0xFF160F3C), Color(0xFF0A0722)],
       Color(0xFF050313), Color(0xFFFF3DB4), Color(0xFF120A33), Color(0xFF05030F),
       Color(0xFF2B1F7A), Color(0xFF35F0FF)),
+  BoardTheme('sakura', 'Sakura Blossom', BoardKind.sakura,
+      [Color(0xFFF8CFDC), Color(0xFFF0A6BD), Color(0xFFC9708F)],
+      Color(0xFF8F4A63), Color(0xFFFFFFFF), Color(0xFF7A3048), Color(0xFF3D1424),
+      Color(0xFFFFD6E4), Color(0xFFFFB7D0)),
+  BoardTheme('galaxy', 'Galaxy Slate', BoardKind.galaxy,
+      [Color(0xFF3A2A7A), Color(0xFF22164F), Color(0xFF120B30)],
+      Color(0xFF08051A), Color(0xFFB9A6FF), Color(0xFF0B0724), Color(0xFF030212),
+      Color(0xFF5B3FC4), Color(0xFFC9B8FF)),
+  BoardTheme('ocean', 'Tidepool', BoardKind.ocean,
+      [Color(0xFF56BDEE), Color(0xFF2C8FD0), Color(0xFF1A5FA0)],
+      Color(0xFF0E3C6A), Color(0xFFFFFFFF), Color(0xFF12406E), Color(0xFF06203C),
+      Color(0xFF6BE0C0), Color(0xFF9BE8FF)),
+  BoardTheme('candy', 'Candy Cane', BoardKind.candy,
+      [Color(0xFFFFD6E4), Color(0xFFFF9DBE), Color(0xFFE0628F)],
+      Color(0xFF9A2F5C), Color(0xFFFFFFFF), Color(0xFF8E2A54), Color(0xFF4A1030),
+      Color(0xFFFFFFFF), Color(0xFFFFFFFF)),
+  BoardTheme('aurora', 'Aurora Ice', BoardKind.aurora,
+      [Color(0xFF2B4A7A), Color(0xFF1B3256), Color(0xFF0F1E3A)],
+      Color(0xFF070F22), Color(0xFF7CFFD0), Color(0xFF0A1630), Color(0xFF040A18),
+      Color(0xFF7CFFD0), Color(0xFF7CFFD0)),
 ];
 
 BoardTheme boardThemeById(String id) =>

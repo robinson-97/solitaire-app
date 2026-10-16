@@ -46,6 +46,16 @@ const pegRules = <String, UnlockRule>{
   'vinyl': UnlockRule('sakura', 1, 5, 75),
   'smiley': UnlockRule('sakura', 2, 3, 75),
   'starlight': UnlockRule('skyislands', 3, 5, 80),
+  'aurora': UnlockRule('frozen', 3, 3, 76),
+  'galaxy': UnlockRule('cosmic', 3, 5, 77),
+  'tide': UnlockRule('coral', 3, 5, 76),
+  'clockwork': UnlockRule('ruins', 3, 5, 77),
+  'storm': UnlockRule('skyislands', 2, 3, 76),
+  'plasma': UnlockRule('cyber', 3, 3, 77),
+  'koi': UnlockRule('sakura', 3, 5, 78),
+  'lantern': UnlockRule('autumn', 3, 5, 76),
+  'radar': UnlockRule('jungle', 3, 5, 77),
+  'peppermint': UnlockRule('candy', 3, 5, 76),
 };
 
 const boardRules = <String, UnlockRule>{
@@ -56,6 +66,11 @@ const boardRules = <String, UnlockRule>{
   'rune': UnlockRule('crystal', 3, 5, 72),
   'pitch': UnlockRule('fairytale', 3, 5, 76),
   'marble': UnlockRule('skyislands', 2, 5, 76),
+  'sakura': UnlockRule('sakura', 3, 3, 74),
+  'galaxy': UnlockRule('cosmic', 2, 5, 75),
+  'ocean': UnlockRule('coral', 2, 5, 74),
+  'candy': UnlockRule('candy', 2, 3, 74),
+  'aurora': UnlockRule('frozen', 3, 5, 75),
 };
 
 /// Rewards that a given board can earn, for display on level/board cards.

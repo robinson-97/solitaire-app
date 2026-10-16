@@ -828,6 +828,87 @@ class _BoardPainter extends CustomPainter {
       for (var y = bounds.top; y <= bounds.bottom; y += cell * 0.5) {
         canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y), Paint()..color = theme.grain.withValues(alpha: 0.2 + 0.1 * pulse)..strokeWidth = 1);
       }
+    } else if (theme.kind == BoardKind.sakura) {
+      final grain = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Colors.white.withValues(alpha: 0.2);
+      for (var y = bounds.top; y < bounds.bottom; y += cell * 0.19) {
+        final p = Path()..moveTo(bounds.left, y);
+        for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
+          p.quadraticBezierTo(x + cell * 0.25, y + sin(x * 0.07 + y * 0.13) * 2.4, x + cell * 0.5, y);
+        }
+        canvas.drawPath(p, grain);
+      }
+      for (var i = 0; i < 16; i++) {
+        final t = (glow * (1 + i % 2) + i * 0.173) % 1.0;
+        final o = Offset(bounds.left + ((i * 0.37 + 0.2 * sin(t * 2 * pi + i)) % 1.0) * bounds.width, bounds.top + t * bounds.height);
+        canvas.save();
+        canvas.translate(o.dx, o.dy);
+        canvas.rotate(t * 6 + i);
+        canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: cell * 0.2, height: cell * 0.11), Paint()..color = (i.isEven ? Colors.white : const Color(0xFFFF8FB4)).withValues(alpha: 0.75));
+        canvas.restore();
+      }
+    } else if (theme.kind == BoardKind.galaxy) {
+      final gr = Random(5);
+      for (var i = 0; i < 110; i++) {
+        final o = Offset(bounds.left + gr.nextDouble() * bounds.width, bounds.top + gr.nextDouble() * bounds.height);
+        final tw = 0.35 + 0.65 * (0.5 + 0.5 * sin(glow * 2 * pi * (1 + i % 3) + i));
+        canvas.drawCircle(o, cell * (0.015 + gr.nextDouble() * 0.03), Paint()..color = Colors.white.withValues(alpha: 0.85 * tw));
+      }
+      for (var i = 0; i < 3; i++) {
+        final o = bounds.center + Offset(cos(glow * 2 * pi + i * 2.1) * bounds.width * 0.28, sin(glow * 2 * pi + i * 2.1) * bounds.height * 0.22);
+        canvas.drawCircle(o, bounds.width * 0.22, Paint()..color = [const Color(0xFF7A4AE8), const Color(0xFFE04AB0), const Color(0xFF4A8AF0)][i].withValues(alpha: 0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 26));
+      }
+    } else if (theme.kind == BoardKind.ocean) {
+      for (var row = 0; row < 14; row++) {
+        final y0 = bounds.top + row * bounds.height / 13;
+        final p = Path()..moveTo(bounds.left, y0);
+        for (var x = bounds.left; x <= bounds.right; x += cell * 0.25) {
+          p.lineTo(x, y0 + sin(x * 0.045 + glow * 2 * pi * (row.isEven ? 1 : -1) + row) * cell * 0.09);
+        }
+        canvas.drawPath(p, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.6..color = Colors.white.withValues(alpha: row.isEven ? 0.28 : 0.16));
+      }
+      final gr = Random(9);
+      for (var i = 0; i < 18; i++) {
+        final o = Offset(bounds.left + gr.nextDouble() * bounds.width, bounds.top + gr.nextDouble() * bounds.height);
+        canvas.drawCircle(o, cell * 0.04, Paint()..color = Colors.white.withValues(alpha: 0.5 * (0.5 + 0.5 * sin(glow * 2 * pi * 2 + i))));
+      }
+    } else if (theme.kind == BoardKind.candy) {
+      final w = cell * 0.7;
+      final shift = glow * w * 2;
+      for (var x = bounds.left - bounds.height - w * 2; x < bounds.right + w; x += w * 2) {
+        final path = Path()
+          ..moveTo(x + shift, bounds.bottom)
+          ..lineTo(x + shift + w, bounds.bottom)
+          ..lineTo(x + shift + w + bounds.height, bounds.top)
+          ..lineTo(x + shift + bounds.height, bounds.top)
+          ..close();
+        canvas.drawPath(path, Paint()..color = Colors.white.withValues(alpha: 0.5));
+      }
+      final gr = Random(2);
+      for (var i = 0; i < 26; i++) {
+        final o = Offset(bounds.left + gr.nextDouble() * bounds.width, bounds.top + gr.nextDouble() * bounds.height);
+        canvas.save();
+        canvas.translate(o.dx, o.dy);
+        canvas.rotate(gr.nextDouble() * pi);
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: cell * 0.16, height: cell * 0.05), Radius.circular(cell * 0.025)), Paint()..color = HSVColor.fromAHSV(1, gr.nextDouble() * 360, 0.55, 1).toColor());
+        canvas.restore();
+      }
+    } else if (theme.kind == BoardKind.aurora) {
+      const cols = [Color(0xFF5CFFB8), Color(0xFFB07CFF), Color(0xFF5CC8FF)];
+      for (var i = 0; i < 3; i++) {
+        final p = Path()..moveTo(bounds.left, bounds.bottom);
+        for (var x = bounds.left; x <= bounds.right + cell * 0.3; x += cell * 0.3) {
+          final t = (x - bounds.left) / bounds.width;
+          final y = bounds.top + bounds.height * (0.25 + 0.25 * i) + sin(t * 6 + glow * 2 * pi + i * 1.9) * bounds.height * 0.1;
+          p.lineTo(x, y);
+        }
+        p..lineTo(bounds.right, bounds.bottom)..close();
+        canvas.drawPath(p, Paint()..color = cols[i].withValues(alpha: 0.13 + 0.05 * pulse));
+      }
+      final gr = Random(4);
+      for (var i = 0; i < 50; i++) {
+        final o = Offset(bounds.left + gr.nextDouble() * bounds.width, bounds.top + gr.nextDouble() * bounds.height);
+        canvas.drawCircle(o, cell * 0.02, Paint()..color = Colors.white.withValues(alpha: 0.7 * (0.5 + 0.5 * sin(glow * 2 * pi * 3 + i))));
+      }
     } else if (theme.kind != BoardKind.wood) {
       final rnd = Random(3);
       for (var i = 0; i < 260; i++) {
@@ -894,7 +975,7 @@ class _BoardPainter extends CustomPainter {
     canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
     canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.white.withValues(alpha: 0.3));
     // moss
-    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : theme.kind == BoardKind.pitch || theme.kind == BoardKind.neon ? 0.0 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : const [BoardKind.pitch, BoardKind.neon, BoardKind.sakura, BoardKind.galaxy, BoardKind.ocean, BoardKind.candy, BoardKind.aurora].contains(theme.kind) ? 0.0 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     final mossSpots = theme.kind == BoardKind.stone ? 7 : theme.kind == BoardKind.wood ? 3 : 4;
     final mr = Random(8);
     for (var i = 0; i < mossSpots; i++) {

@@ -311,6 +311,137 @@ class _PegPainter extends CustomPainter {
           canvas.drawOval(Rect.fromCenter(center: o, width: r * (0.2 + rr.nextDouble() * 0.12), height: r * 0.17), chip);
           canvas.drawCircle(o - Offset(r * 0.03, r * 0.03), r * 0.03, Paint()..color = Colors.white.withValues(alpha: 0.25));
         }
+      case PegKind.aurora:
+        const cols = [Color(0xFF6BFFB0), Color(0xFFFF7ADF), Color(0xFF6BD6FF)];
+        for (var i = 0; i < 3; i++) {
+          final pth = Path();
+          for (var k = 0; k <= 12; k++) {
+            final x = s.width * k / 12;
+            final y = c.dy + (i - 1) * r * 0.45 + sin(k * 0.9 + glow * 2 * pi + i * 1.7) * r * 0.3;
+            k == 0 ? pth.moveTo(x, y) : pth.lineTo(x, y);
+          }
+          canvas.drawPath(pth, Paint()..style = PaintingStyle.stroke..strokeWidth = r * 0.3..strokeCap = StrokeCap.round..color = cols[i].withValues(alpha: 0.55)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.08));
+        }
+      case PegKind.galaxy:
+        for (var arm = 0; arm < 2; arm++) {
+          for (var j = 1; j < 26; j++) {
+            final a = arm * pi + j * 0.27 + glow * 2 * pi;
+            final d = r * (0.05 + j * 0.034);
+            canvas.drawCircle(c + Offset(cos(a), sin(a)) * d, r * (0.045 + 0.02 * (j % 3)), Paint()..color = Color.lerp(const Color(0xFFFFF0C8), const Color(0xFFB59BFF), j / 26)!.withValues(alpha: 0.9));
+          }
+        }
+        canvas.drawCircle(c, r * (0.2 + 0.04 * pulse), Paint()..color = const Color(0xFFFFF0C8).withValues(alpha: 0.6)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.12));
+      case PegKind.tide:
+        for (var i = 0; i < 3; i++) {
+          final pth = Path()..moveTo(0, s.height);
+          for (var k = 0; k <= 16; k++) {
+            final x = s.width * k / 16;
+            pth.lineTo(x, c.dy + (i - 0.6) * r * 0.5 + sin(k * 0.8 + glow * 2 * pi * (i.isEven ? 1 : -1) + i) * r * 0.12);
+          }
+          pth..lineTo(s.width, s.height)..close();
+          canvas.drawPath(pth, Paint()..color = Colors.white.withValues(alpha: 0.18));
+        }
+      case PegKind.clockwork:
+        canvas.save();
+        canvas.translate(c.dx, c.dy);
+        canvas.rotate(glow * 2 * pi);
+        final gear = Path();
+        for (var i = 0; i < 20; i++) {
+          final a = i * pi / 10;
+          final rad = (i % 2 == 0) ? r * 0.72 : r * 0.56;
+          final a2 = a + pi / 20;
+          gear..lineTo(cos(a) * rad, sin(a) * rad)..lineTo(cos(a2) * rad, sin(a2) * rad);
+        }
+        gear.close();
+        canvas.drawPath(gear, Paint()..color = const Color(0xFF5A3A12).withValues(alpha: 0.75));
+        canvas.drawCircle(Offset.zero, r * 0.3, Paint()..color = const Color(0xFFE8B866));
+        canvas.restore();
+        canvas.save();
+        canvas.translate(c.dx, c.dy);
+        canvas.rotate(-glow * 2 * pi * 3);
+        canvas.drawLine(Offset.zero, Offset(0, -r * 0.5), Paint()..color = const Color(0xFF2A1604)..strokeWidth = 2..strokeCap = StrokeCap.round);
+        canvas.restore();
+        canvas.drawCircle(c, r * 0.07, Paint()..color = const Color(0xFF2A1604));
+      case PegKind.storm:
+        final cl = Paint()..color = const Color(0xFF2A2E44).withValues(alpha: 0.85);
+        for (var i = 0; i < 3; i++) {
+          final x = ((glow * 2 + i / 3) % 1.0) * s.width * 1.6 - s.width * 0.3;
+          canvas.drawCircle(Offset(x, r * (0.5 + 0.5 * i * 0.6)), r * 0.45, cl);
+          canvas.drawCircle(Offset(x + r * 0.35, r * (0.55 + 0.5 * i * 0.6)), r * 0.35, cl);
+        }
+        final fl = pow(max(0.0, sin(glow * 2 * pi * 3)), 14).toDouble();
+        if (fl > 0.02) {
+          canvas.drawPath(Path()..moveTo(c.dx + r * 0.1, c.dy - r * 0.7)..lineTo(c.dx - r * 0.2, c.dy - r * 0.05)..lineTo(c.dx + r * 0.1, c.dy - r * 0.05)..lineTo(c.dx - r * 0.15, c.dy + r * 0.7), Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5..strokeJoin = StrokeJoin.round..color = const Color(0xFFFFF6B0).withValues(alpha: fl));
+          canvas.drawCircle(c, r, Paint()..color = Colors.white.withValues(alpha: fl * 0.25));
+        }
+      case PegKind.plasma:
+        for (var i = 0; i < 6; i++) {
+          final a = i * pi / 3 + glow * 2 * pi * (i.isEven ? 1 : -1) * 0.5;
+          final pth = Path()..moveTo(c.dx, c.dy);
+          for (var k = 1; k <= 6; k++) {
+            final d = r * k / 6;
+            final w = sin(k * 2.1 + glow * 2 * pi * 4 + i) * 0.22;
+            pth.lineTo(c.dx + cos(a + w) * d, c.dy + sin(a + w) * d);
+          }
+          canvas.drawPath(pth, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.6..color = (i.isEven ? const Color(0xFFFFB8FF) : const Color(0xFF9AF0FF)).withValues(alpha: 0.85));
+        }
+        canvas.drawCircle(c, r * 0.22, Paint()..color = Colors.white.withValues(alpha: 0.55 + 0.3 * pulse)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.1));
+      case PegKind.koi:
+        canvas.drawCircle(c, r * (0.45 + 0.35 * ((glow * 2) % 1.0)), Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = Colors.white.withValues(alpha: 0.4 * (1 - (glow * 2) % 1.0)));
+        for (var i = 0; i < 2; i++) {
+          final a = glow * 2 * pi * (i == 0 ? 1 : -1) + i * pi;
+          final rad = r * (i == 0 ? 0.5 : 0.28);
+          final pos = c + Offset(cos(a), sin(a)) * rad;
+          final dir = a + (i == 0 ? pi / 2 : -pi / 2);
+          canvas.save();
+          canvas.translate(pos.dx, pos.dy);
+          canvas.rotate(dir);
+          final body = i == 0 ? const Color(0xFFFF8A2E) : const Color(0xFFFFFFFF);
+          canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: r * 0.55, height: r * 0.26), Paint()..color = body);
+          canvas.drawPath(Path()..moveTo(-r * 0.22, 0)..lineTo(-r * 0.46, -r * 0.14 + sin(glow * 2 * pi * 12) * r * 0.05)..lineTo(-r * 0.46, r * 0.14 + sin(glow * 2 * pi * 12) * r * 0.05)..close(), Paint()..color = body.withValues(alpha: 0.85));
+          canvas.drawCircle(Offset(r * 0.1, -r * 0.04), r * 0.04, Paint()..color = Colors.black87);
+          canvas.restore();
+        }
+      case PegKind.lantern:
+        canvas.drawCircle(c, r * (0.75 + 0.05 * pulse), Paint()..color = const Color(0xFFFFC46B).withValues(alpha: 0.3 + 0.25 * pulse)..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.2));
+        final rib = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = const Color(0xFF5A0E08).withValues(alpha: 0.6);
+        for (var i = -2; i <= 2; i++) {
+          canvas.drawOval(Rect.fromCenter(center: c, width: r * 2 * (i.abs() / 2.4 + 0.1), height: s.height), rib);
+        }
+        canvas.drawRect(Rect.fromLTWH(c.dx - r * 0.45, 0, r * 0.9, r * 0.2), Paint()..color = const Color(0xFF2A1004));
+        canvas.drawRect(Rect.fromLTWH(c.dx - r * 0.45, s.height - r * 0.2, r * 0.9, r * 0.2), Paint()..color = const Color(0xFF2A1004));
+      case PegKind.radar:
+        final ring = Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0xFF8AFFB0).withValues(alpha: 0.4);
+        for (final k in [0.3, 0.6, 0.9]) {
+          canvas.drawCircle(c, r * k, ring);
+        }
+        canvas.drawLine(Offset(0, c.dy), Offset(s.width, c.dy), ring);
+        canvas.drawLine(Offset(c.dx, 0), Offset(c.dx, s.height), ring);
+        canvas.drawCircle(
+          c,
+          r,
+          Paint()
+            ..shader = SweepGradient(
+              transform: GradientRotation(glow * 2 * pi),
+              colors: [const Color(0xFF8AFFB0).withValues(alpha: 0.0), const Color(0xFF8AFFB0).withValues(alpha: 0.65), const Color(0xFF8AFFB0).withValues(alpha: 0.0)],
+              stops: const [0.0, 0.14, 0.15],
+            ).createShader(rect),
+        );
+        final blip = (1 - ((glow - 0.3) % 1.0)) .clamp(0.0, 1.0);
+        canvas.drawCircle(c + Offset(r * 0.4, -r * 0.3), r * 0.07, Paint()..color = Colors.white.withValues(alpha: blip));
+      case PegKind.peppermint:
+        const red = Color(0xFFE6304F);
+        canvas.drawCircle(
+          c,
+          r,
+          Paint()
+            ..shader = SweepGradient(
+              transform: GradientRotation(glow * 2 * pi),
+              colors: [for (var i = 0; i < 12; i++) ...(i.isEven ? [red, red] : [Colors.white, Colors.white])],
+              stops: [for (var i = 0; i < 12; i++) ...[i / 12, (i + 1) / 12 - 0.0001]],
+            ).createShader(rect),
+        );
+        canvas.drawCircle(c, r * 0.16, Paint()..color = Colors.white);
       case PegKind.material:
         break;
       case PegKind.ember:
