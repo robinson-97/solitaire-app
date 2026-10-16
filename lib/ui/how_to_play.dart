@@ -47,7 +47,7 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> with SingleTickerProv
     final last = page == _pages.length - 1;
     return Scaffold(
       body: SceneBackground(
-        world: 'forest',
+        world: 'menu',
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),

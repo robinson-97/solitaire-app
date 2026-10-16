@@ -38,18 +38,7 @@ class _ShellState extends State<Shell> {
     }
     return Scaffold(
       body: Stack(children: [
-        Positioned.fill(
-          child: ValueListenableBuilder<World>(
-            valueListenable: worldNotifier,
-            builder: (_, world, _) {
-              final shown = tab == 0 ? world : worlds.first;
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 700),
-                child: SceneBackground(key: ValueKey(shown.id), world: shown.id),
-              );
-            },
-          ),
-        ),
+        const Positioned.fill(child: SceneBackground(world: 'menu')),
         SafeArea(
           bottom: false,
           child: IndexedStack(index: tab, children: [

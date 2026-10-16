@@ -83,7 +83,7 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    final fg = primary ? const Color(0xFF3A2210) : parchment;
+    final fg = primary ? const Color(0xFF04202A) : parchment;
     return AnimatedOpacity(
       opacity: enabled ? 1 : 0.4,
       duration: const Duration(milliseconds: 150),
@@ -92,7 +92,7 @@ class PillButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(40),
           color: primary ? lantern : (danger ? const Color(0xFFC4473A) : cocoa.withValues(alpha: 0.92)),
           border: primary ? null : Border.all(color: danger ? const Color(0xFFE8786A) : cocoaEdge, width: 1.6),
-          boxShadow: [BoxShadow(color: primary ? const Color(0xFFB9701C) : (danger ? const Color(0xFF7E2A22) : cocoaDeep), offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: primary ? const Color(0xFF138796) : (danger ? const Color(0xFF7E2A22) : cocoaDeep), offset: const Offset(0, 4))],
         ),
         child: Material(
           color: Colors.transparent,

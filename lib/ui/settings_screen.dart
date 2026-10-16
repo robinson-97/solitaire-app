@@ -77,6 +77,21 @@ class _SettingsPageState extends State<SettingsPage> {
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,
               activeThumbColor: lantern,
+              title: const Text('World scenery in levels', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('Off: a sleek dark neon backdrop. On: the illustrated scenery of each world.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
+              value: widget.storage.sceneryBackdrop,
+              onChanged: (v) async {
+                await widget.storage.setSceneryBackdrop(v);
+                setState(() {});
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: lantern,
               title: const Text('Sound effects', style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('Soft sounds for jumps, undo and unlocks.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
               value: widget.storage.sound,
