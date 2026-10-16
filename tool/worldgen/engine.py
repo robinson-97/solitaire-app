@@ -214,9 +214,9 @@ def bloom(img, threshold=0.75, radius=18, strength=0.6):
     return img + b * strength
 
 
-def finish(img, out_w, out_h, vignette=0.35, grain=0.012, sat=1.08, contrast=1.05, seed=2):
+def finish(img, out_w, out_h, vignette=0.35, grain=0.012, sat=1.08, contrast=1.05, seed=2, bloom_strength=0.5, bloom_threshold=0.78, bloom_radius=14):
     img = np.clip(img, 0, None)
-    img = bloom(img, 0.78, 14, 0.5)
+    img = bloom(img, bloom_threshold, bloom_radius, bloom_strength)
     img = img / (1 + 0.15 * img)  # soft tone map
     gray = img.mean(-1, keepdims=True)
     img = gray + (img - gray) * sat
