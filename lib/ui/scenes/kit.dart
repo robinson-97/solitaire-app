@@ -3,4 +3,5 @@ library;
 
 export 'kit_core.dart';
 export 'kit_fx.dart';
+export 'kit_paint.dart';
 export 'kit_shapes.dart';

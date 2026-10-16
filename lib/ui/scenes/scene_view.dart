@@ -47,6 +47,7 @@ class _SceneBackgroundState extends State<SceneBackground> with SingleTickerProv
     final spec = sceneFor(widget.world);
     return Stack(fit: StackFit.expand, children: [
       Positioned.fill(child: RepaintBoundary(child: SceneStack(spec: spec, anim: _c))),
+      const Positioned.fill(child: IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: _GrainPainter())))),
       // soft darkening so titles and buttons stay readable
       Positioned.fill(
         child: IgnorePointer(
@@ -88,6 +89,7 @@ Future<ui.Image> sceneThumbnail(String world, {double u = 0.12}) => _thumbs.putI
           l.still!(c, size);
         }
       }
+      paintGrain(c, size);
       return rec.endRecording().toImage(size.width.round(), size.height.round());
     });
 
@@ -152,7 +154,33 @@ class SceneStack extends StatelessWidget {
         ]);
       });
 
+  Widget _scroll(Layer l, Size size) {
+    final w = size.width, top = l.bandTop * size.height, bh = (l.bandBottom - l.bandTop) * size.height;
+    final strip = RepaintBoundary(
+      child: OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 3 * w,
+        maxWidth: 3 * w,
+        minHeight: bh,
+        maxHeight: bh,
+        child: CustomPaint(size: Size(3 * w, bh), painter: _ScrollPainter(l.still!, size, top)),
+      ),
+    );
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: anim,
+        child: strip,
+        builder: (_, child) {
+          final k = Clock(anim.value).saw(l.scrollCycles);
+          final dx = l.scrollLeft ? -w * k : w * k;
+          return Transform.translate(offset: Offset(-w + dx, top), child: child);
+        },
+      ),
+    );
+  }
+
   Widget _still(Layer l, Size size) {
+    if (l.scrollCycles > 0) return _scroll(l, size);
     final bx = (l.driftX.abs() + 0.05) * size.width + l.rotate.abs() * size.height * 0.5;
     final by = (l.driftY.abs() + 0.03) * size.height + l.sway.abs() * size.height * 0.5;
     final big = Size(size.width + 2 * bx, size.height + 2 * by);
@@ -209,6 +237,38 @@ class _StillPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_StillPainter old) => old.fn != fn || old.screen != screen;
+}
+
+class _ScrollPainter extends CustomPainter {
+  _ScrollPainter(this.fn, this.screen, this.top);
+  final StillPaint fn;
+  final Size screen;
+  final double top;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.clipRect(Offset.zero & size);
+    for (var t = 0; t < 3; t++) {
+      canvas
+        ..save()
+        ..translate(t * screen.width, -top);
+      fn(canvas, screen);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScrollPainter old) => old.fn != fn || old.screen != screen;
+}
+
+class _GrainPainter extends CustomPainter {
+  const _GrainPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) => paintGrain(canvas, size);
+
+  @override
+  bool shouldRepaint(_GrainPainter old) => false;
 }
 
 class _LivePainter extends CustomPainter {

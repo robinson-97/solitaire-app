@@ -164,10 +164,43 @@ class Layer {
     this.breathe = 0,
     this.breatheCycles = 3,
     this.pivot = Alignment.bottomCenter,
-  }) : live = null;
+  })  : live = null,
+        scrollCycles = 0,
+        scrollLeft = true,
+        bandTop = 0,
+        bandBottom = 1;
 
   const Layer.live(LivePaint this.live)
       : still = null,
+        scrollCycles = 0,
+        scrollLeft = true,
+        bandTop = 0,
+        bandBottom = 1,
+        driftX = 0,
+        driftY = 0,
+        driftCycles = 1,
+        driftPhase = 0,
+        sway = 0,
+        rotate = 0,
+        swayCycles = 1,
+        swayPhase = 0,
+        breathe = 0,
+        breatheCycles = 1,
+        pivot = Alignment.center;
+
+  /// A horizontally endless strip (cloud decks, mist, waves, flocks): [paint]
+  /// is called for the whole screen but must be PERIODIC in x (anything that
+  /// crosses the left/right edge is drawn again on the other side by the kit,
+  /// which calls [paint] three times side by side). Only rows between [top] and
+  /// [bottom] (fractions of the height) are kept, which saves memory.
+  /// It scrolls once across the screen every `60 / cycles` seconds.
+  const Layer.scroll(
+    StillPaint this.still, {
+    this.scrollCycles = 1,
+    this.scrollLeft = true,
+    this.bandTop = 0,
+    this.bandBottom = 1,
+  })  : live = null,
         driftX = 0,
         driftY = 0,
         driftCycles = 1,
@@ -182,6 +215,9 @@ class Layer {
 
   final StillPaint? still;
   final LivePaint? live;
+  final int scrollCycles;
+  final bool scrollLeft;
+  final double bandTop, bandBottom;
   final double driftX, driftY;
   final int driftCycles;
   final double driftPhase;
@@ -192,7 +228,7 @@ class Layer {
   final int breatheCycles;
   final Alignment pivot;
 
-  bool get moves => driftX != 0 || driftY != 0 || sway != 0 || rotate != 0 || breathe != 0;
+  bool get moves => scrollCycles > 0 || driftX != 0 || driftY != 0 || sway != 0 || rotate != 0 || breathe != 0;
 }
 
 /// Everything the app needs to show one world.
