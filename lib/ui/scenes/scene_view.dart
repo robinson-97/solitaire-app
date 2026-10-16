@@ -67,6 +67,21 @@ class _SceneBackgroundState extends State<SceneBackground> with SingleTickerProv
           ),
         ),
       ),
+      // one shared light + soft vignette ties all layers together
+      Positioned.fill(
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(-0.5, -0.75),
+                radius: 1.3,
+                colors: [Colors.white.withValues(alpha: 0.13), Colors.transparent, Colors.black.withValues(alpha: 0.2)],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ),
       widget.child,
     ]);
   }
@@ -143,12 +158,23 @@ class SceneStack extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(builder: (_, box) {
         final size = Size(box.maxWidth, box.maxHeight);
         if (size.isEmpty) return const SizedBox.shrink();
+        final layers = spec.renderLayers;
+        // Depth of field: the farther back a layer is, the softer it is, so the
+        // scene reads as one picture instead of cut-outs pasted together.
+        final soft = (layers.length * 0.55).floor();
+        Widget depth(int i, Widget w) {
+          if (i == 0 || i >= soft) return w;
+          final sigma = 2.4 * (1 - i / soft);
+          if (sigma < 0.5) return w;
+          return ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.clamp), child: w);
+        }
+
         return Stack(fit: StackFit.expand, clipBehavior: Clip.hardEdge, children: [
-          for (final l in spec.renderLayers)
-            if (l.live != null)
-              Positioned.fill(child: CustomPaint(painter: _LivePainter(l.live!, anim)))
+          for (var i = 0; i < layers.length; i++)
+            if (layers[i].live != null)
+              Positioned.fill(child: CustomPaint(painter: _LivePainter(layers[i].live!, anim)))
             else
-              _still(l, size),
+              depth(i, _still(layers[i], size)),
         ]);
       });
 
