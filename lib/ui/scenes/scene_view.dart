@@ -166,7 +166,7 @@ class SceneStack extends StatelessWidget {
           if (i == 0 || i >= soft) return w;
           final sigma = 2.4 * (1 - i / soft);
           if (sigma < 0.5) return w;
-          return ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.clamp), child: w);
+          return Positioned.fill(child: ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.clamp), child: Stack(fit: StackFit.expand, children: [w])));
         }
 
         return Stack(fit: StackFit.expand, clipBehavior: Clip.hardEdge, children: [
