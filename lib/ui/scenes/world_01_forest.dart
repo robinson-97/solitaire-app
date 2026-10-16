@@ -16,7 +16,6 @@ const _woodA = Color(0xFF6FB796), _woodB = Color(0xFF52A67F), _woodC = Color(0xF
 const _woodLightA = Color(0xFF90CDAE), _woodLightB = Color(0xFF72BD94), _woodLightC = Color(0xFF58AC7D);
 const _meadowA = Color(0xFF86C766), _meadowB = Color(0xFF63B552), _meadowC = Color(0xFF489F49);
 const _meadowLight = Color(0xFFB3E27C);
-const _trunk = Color(0xFF7A5238), _trunkShade = Color(0xFF5E3E2B);
 const _crown = Color(0xFF2E9A58), _crownDark = Color(0xFF247F4B), _crownLight = Color(0xFF66C96A);
 const _water = Color(0xFF55C0D6), _waterLight = Color(0xFF9BE3EA), _bank = Color(0xFF2F8F6A);
 
@@ -118,72 +117,76 @@ void _meadow(Canvas c, Size s) {
 void _hero(Canvas c, Size s) {
   final w = s.width, h = s.height;
   final base = Offset(w * 0.33, h * 0.79);
+  final rr = rng(5);
+  final cr = Offset(w * 0.3, h * 0.23);
+
+  // contact shadow on the grass
+  c.drawOval(Rect.fromCenter(center: base + Offset(w * 0.12, h * 0.035), width: w * 0.7, height: h * 0.05), Paint()..color = const Color(0x33103A20));
+
+  // trunk: lit on the left, dark on the right, flaring into roots
   final trunk = Path()
-    ..moveTo(base.dx - w * 0.2, base.dy + h * 0.03)
-    ..cubicTo(base.dx - w * 0.09, base.dy - h * 0.01, base.dx - w * 0.09, base.dy - h * 0.1, base.dx - w * 0.085, base.dy - h * 0.2)
-    ..cubicTo(base.dx - w * 0.08, base.dy - h * 0.34, base.dx - w * 0.07, base.dy - h * 0.44, base.dx - w * 0.05, base.dy - h * 0.55)
-    ..lineTo(base.dx + w * 0.1, base.dy - h * 0.55)
-    ..cubicTo(base.dx + w * 0.105, base.dy - h * 0.4, base.dx + w * 0.115, base.dy - h * 0.3, base.dx + w * 0.125, base.dy - h * 0.18)
-    ..cubicTo(base.dx + w * 0.14, base.dy - h * 0.05, base.dx + w * 0.2, base.dy, base.dx + w * 0.3, base.dy + h * 0.03)
+    ..moveTo(base.dx - w * 0.22, base.dy + h * 0.035)
+    ..cubicTo(base.dx - w * 0.1, base.dy + h * 0.0, base.dx - w * 0.095, base.dy - h * 0.1, base.dx - w * 0.085, base.dy - h * 0.2)
+    ..cubicTo(base.dx - w * 0.078, base.dy - h * 0.34, base.dx - w * 0.07, base.dy - h * 0.44, base.dx - w * 0.055, base.dy - h * 0.57)
+    ..lineTo(base.dx + w * 0.1, base.dy - h * 0.57)
+    ..cubicTo(base.dx + w * 0.105, base.dy - h * 0.4, base.dx + w * 0.115, base.dy - h * 0.3, base.dx + w * 0.128, base.dy - h * 0.18)
+    ..cubicTo(base.dx + w * 0.145, base.dy - h * 0.05, base.dx + w * 0.2, base.dy, base.dx + w * 0.32, base.dy + h * 0.035)
     ..close();
-  c.drawPath(trunk, Paint()..color = _trunk);
-  c
-    ..save()
-    ..clipPath(trunk)
-    ..drawRect(Rect.fromLTRB(base.dx + w * 0.02, 0, w, h), Paint()..color = _trunkShade)
-    ..restore();
-  // a few flat bark lines
-  final bark = Paint()
+  final tb = trunk.getBounds();
+  c.drawPath(
+    trunk,
+    Paint()
+      ..shader = LinearGradient(
+        colors: const [Color(0xFF9A6A47), Color(0xFF7A5238), Color(0xFF4A2F22)],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(tb),
+  );
+  c.save();
+  c.clipPath(trunk);
+  // soft bark grain: long curved strokes, low contrast
+  final grain = Paint()
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
-    ..strokeWidth = 2.4
-    ..color = const Color(0xFF4F3324);
-  for (final (dx, dy, len) in [(-0.04, -0.12, 0.09), (0.0, -0.3, 0.1), (-0.055, -0.38, 0.06), (0.05, -0.2, 0.08)]) {
-    c.drawLine(Offset(base.dx + w * dx, base.dy + h * dy), Offset(base.dx + w * dx - 2, base.dy + h * (dy + len)), bark);
+    ..strokeWidth = 3
+    ..color = const Color(0x333A2418);
+  for (var i = 0; i < 9; i++) {
+    final x = base.dx - w * 0.07 + w * 0.17 * rr.nextDouble();
+    final y = base.dy - h * (0.1 + 0.4 * rr.nextDouble());
+    final len = h * (0.06 + 0.08 * rr.nextDouble());
+    c.drawPath(Path()..moveTo(x, y)..cubicTo(x + 5, y + len * 0.3, x - 4, y + len * 0.7, x + 2, y + len), grain);
   }
-  // roots mossy cap at the base
-  final moss = Path()
-    ..moveTo(base.dx - w * 0.2, base.dy + h * 0.03)
-    ..quadraticBezierTo(base.dx - w * 0.1, base.dy - h * 0.1, base.dx - w * 0.02, base.dy - h * 0.06)
-    ..quadraticBezierTo(base.dx + w * 0.08, base.dy - h * 0.12, base.dx + w * 0.3, base.dy + h * 0.03)
-    ..close();
-  c
-    ..save()
-    ..clipPath(trunk)
-    ..drawPath(moss, Paint()..color = const Color(0xFF5DB55A))
-    ..restore();
+  // shade cast by the crown, and moss creeping up from the roots
+  c.drawRect(
+    Rect.fromLTRB(tb.left, base.dy - h * 0.57, tb.right, base.dy - h * 0.38),
+    Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x66102A18), Color(0x00102A18)]).createShader(Rect.fromLTRB(tb.left, base.dy - h * 0.57, tb.right, base.dy - h * 0.38)),
+  );
+  final mossRect = Rect.fromLTRB(tb.left, base.dy - h * 0.14, tb.right, base.dy + h * 0.04);
+  c.drawRect(mossRect, Paint()..shader = const LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Color(0xCC5DB55A), Color(0x005DB55A)]).createShader(mossRect));
+  c.restore();
 
-  // crown: big round clumps, dark back layer then lighter front layer
-  final cr = Offset(w * 0.3, h * 0.23);
-  final back = <(Offset, double)>[
-    (cr + Offset(w * 0.0, h * 0.0), w * 0.25),
-    (cr + Offset(w * 0.27, h * 0.01), w * 0.18),
-    (cr + Offset(-w * 0.26, h * 0.02), w * 0.18),
-    (cr + Offset(w * 0.06, -h * 0.06), w * 0.2),
-  ];
-  final front = <(Offset, double)>[
-    (cr + Offset(w * 0.19, h * 0.07), w * 0.16),
-    (cr + Offset(-w * 0.17, h * 0.075), w * 0.15),
-    (cr + Offset(w * 0.0, h * 0.045), w * 0.2),
-  ];
-  for (final (o, r) in back) {
-    c.drawCircle(o, r, Paint()..color = _crownDark);
+  // crown: ~40 soft clumps, back to front, lit from the upper left
+  final clumps = <(Offset, double, double)>[];
+  for (var i = 0; i < 170; i++) {
+    final a = rr.nextDouble() * tau, d = math.pow(rr.nextDouble(), 0.6).toDouble();
+    final o = cr + Offset(math.cos(a) * d * w * 0.46, math.sin(a) * d * h * 0.17 + h * 0.01);
+    final rad = w * (0.04 + 0.04 * rr.nextDouble()) * (1.1 - d * 0.3);
+    clumps.add((o, rad, ((o.dy - (cr.dy - h * 0.17)) / (h * 0.34)).clamp(0.0, 1.0)));
   }
-  for (final (o, r) in back) {
-    c.drawCircle(o + Offset(r * 0.06, r * 0.08), r * 0.9, Paint()..color = _crown);
-    c.drawCircle(o + Offset(-r * 0.1, -r * 0.14), r * 0.5, Paint()..color = _crownLight);
+  clumps.sort((p, q) => p.$1.dy.compareTo(q.$1.dy));
+  // dark body first so no sky shows between the puffs
+  for (final (o, rad, _) in clumps) {
+    c.drawCircle(o, rad * 1.25, Paint()..color = _crownDark);
   }
-  for (final (o, r) in front) {
-    c.drawCircle(o, r, Paint()..color = _crownDark);
-    c.drawCircle(o + Offset(r * 0.06, r * 0.08), r * 0.9, Paint()..color = _crown);
-    c.drawCircle(o + Offset(-r * 0.12, -r * 0.16), r * 0.52, Paint()..color = _crownLight);
+  for (final (o, rad, t) in clumps) {
+    final mid = Color.lerp(_crown, _crownDark, t * 0.7)!;
+    softClump(c, o, rad, light: Color.lerp(_crownLight, mid, 0.25 + 0.5 * t)!, mid: mid, dark: darken(mid, 0.05));
   }
-  // little flat leaf clusters on the crown
-  final rr = rng(5);
+  // sun-dapples on the crown
   for (var i = 0; i < 26; i++) {
-    final a = rr.nextDouble() * tau, d = math.sqrt(rr.nextDouble()) * w * 0.4;
-    final o = cr + Offset(math.cos(a) * d * 1.1, math.sin(a) * d * 0.62);
-    c.drawCircle(o, 3 + rr.nextDouble() * 3, Paint()..color = _crownLight.withValues(alpha: 0.9));
+    final a = rr.nextDouble() * tau, d = math.sqrt(rr.nextDouble()) * 0.9;
+    final o = cr + Offset(math.cos(a) * d * w * 0.42, math.sin(a) * d * h * 0.14 - h * 0.02);
+    final rad = 4 + rr.nextDouble() * 5;
+    c.drawCircle(o, rad, Paint()..shader = RadialGradient(colors: [const Color(0xAAD8FF9A), const Color(0x00D8FF9A)]).createShader(Rect.fromCircle(center: o, radius: rad)));
   }
   // hanging vines
   final vine = Paint()
@@ -195,12 +198,7 @@ void _hero(Canvas c, Size s) {
     final x = w * (0.06 + rr.nextDouble() * 0.55);
     final y0 = h * (0.27 + rr.nextDouble() * 0.03);
     final len = h * (0.03 + rr.nextDouble() * 0.06);
-    c.drawPath(
-      Path()
-        ..moveTo(x, y0)
-        ..quadraticBezierTo(x + 4, y0 + len * 0.5, x - 2, y0 + len),
-      vine,
-    );
+    c.drawPath(Path()..moveTo(x, y0)..quadraticBezierTo(x + 4, y0 + len * 0.5, x - 2, y0 + len), vine);
     c.drawCircle(Offset(x - 2, y0 + len), 2.6, Paint()..color = _crownLight);
   }
 }

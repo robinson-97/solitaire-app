@@ -119,20 +119,25 @@ void flatTree(
 
   final cc = Offset(cx, base.dy - h * 0.68);
   final cr = h * 0.3 * crownScale;
-  final p = Path();
-  final n = 4 + r.nextInt(2);
-  for (var i = 0; i < n; i++) {
-    final a = tau * i / n + r.nextDouble() * 0.5;
-    p.addOval(Rect.fromCircle(center: cc + Offset(math.cos(a) * cr * 0.55, math.sin(a) * cr * 0.45), radius: cr * (0.55 + r.nextDouble() * 0.2)));
+  final clumps = <(Offset, double)>[
+    for (var i = 0; i < 5 + r.nextInt(2); i++)
+      (cc + Offset(math.cos(tau * i / 5 + r.nextDouble() * 0.6) * cr * 0.55, math.sin(tau * i / 5 + r.nextDouble() * 0.6) * cr * 0.42), cr * (0.5 + r.nextDouble() * 0.25)),
+    (cc, cr * 0.7),
+  ]..sort((a, b) => a.$1.dy.compareTo(b.$1.dy));
+  for (final (o, rad) in clumps) {
+    softClump(c, o, rad, light: light, mid: crown, dark: darken(crown, 0.09));
   }
-  p.addOval(Rect.fromCircle(center: cc, radius: cr * 0.75));
-  // light crescent: crown shape in the light colour, then the crown colour shifted over it
-  c.drawPath(p, Paint()..color = light);
-  c
-    ..save()
-    ..clipPath(p)
-    ..drawPath(p.shift(Offset(cr * 0.18, cr * 0.22)), Paint()..color = crown)
-    ..restore();
+}
+
+/// A round puff of foliage lit from the upper left: smooth radial shading, so
+/// overlapping clumps blend into one natural crown instead of flat discs.
+void softClump(Canvas c, Offset o, double r, {required Color light, required Color mid, required Color dark}) {
+  c.drawCircle(
+    o,
+    r,
+    Paint()
+      ..shader = RadialGradient(center: const Alignment(-0.38, -0.45), radius: 1.05, colors: [light, mid, dark], stops: const [0.0, 0.5, 1.0]).createShader(Rect.fromCircle(center: o, radius: r)),
+  );
 }
 
 /// Smooth fir tree, three rounded tiers; the right half of each tier is the
