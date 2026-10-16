@@ -10,7 +10,7 @@ enum PegKind {
   aurora, galaxy, tide, clockwork, storm, plasma, koi, lantern, radar, peppermint,
 }
 
-enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon, sakura, galaxy, ocean, candy, aurora }
+enum BoardKind { wood, stone, marble, crystal, rune, lava, pitch, neon, sakura, galaxy, ocean, candy, aurora, clockwork, circuit, pond, storm, honey, jade }
 
 /// A fully shader-drawn material (see shaders/peg.frag).
 class MaterialSpec {
@@ -228,6 +228,30 @@ const boardThemes = [
       [Color(0xFF2B4A7A), Color(0xFF1B3256), Color(0xFF0F1E3A)],
       Color(0xFF070F22), Color(0xFF7CFFD0), Color(0xFF0A1630), Color(0xFF040A18),
       Color(0xFF7CFFD0), Color(0xFF7CFFD0)),
+  BoardTheme('clockwork', 'Brass Clockwork', BoardKind.clockwork,
+      [Color(0xFFE2B866), Color(0xFFB98A3E), Color(0xFF7A5420)],
+      Color(0xFF4A3010), Color(0xFF3A230A), Color(0xFF5A3C14), Color(0xFF1E1004),
+      Color(0xFF8A5A1E), Color(0xFFFFD98A)),
+  BoardTheme('circuit', 'Circuit Core', BoardKind.circuit,
+      [Color(0xFF1F6B4A), Color(0xFF14503A), Color(0xFF0B3226)],
+      Color(0xFF051A12), Color(0xFF6BFFB8), Color(0xFF0A2A1E), Color(0xFF020C08),
+      Color(0xFF1F6B4A), Color(0xFF6BFFB8)),
+  BoardTheme('pond', 'Koi Pond', BoardKind.pond,
+      [Color(0xFF4FB8AE), Color(0xFF2A8A8C), Color(0xFF165A68)],
+      Color(0xFF0A3440), Color(0xFFFFFFFF), Color(0xFF1A5560), Color(0xFF082630),
+      Color(0xFF7FE0A0), Color(0xFFBFF4F0)),
+  BoardTheme('storm', 'Storm Slate', BoardKind.storm,
+      [Color(0xFF59607A), Color(0xFF3A4058), Color(0xFF232739)],
+      Color(0xFF10121C), Color(0xFFFFF6B0), Color(0xFF181B2A), Color(0xFF080A12),
+      Color(0xFF59607A), Color(0xFFFFF6B0)),
+  BoardTheme('honey', 'Honeycomb', BoardKind.honey,
+      [Color(0xFFFFD35A), Color(0xFFF0A82A), Color(0xFFB87510)],
+      Color(0xFF7A4A08), Color(0xFFFFF0B0), Color(0xFF8A5410), Color(0xFF3A2004),
+      Color(0xFFFFE08A), Color(0xFFFFF0B0)),
+  BoardTheme('jade', 'Jade Temple', BoardKind.jade,
+      [Color(0xFF4FB88A), Color(0xFF2F8F6A), Color(0xFF1B5E48)],
+      Color(0xFF0C3426), Color(0xFFBFFFE0), Color(0xFF14503C), Color(0xFF062016),
+      Color(0xFF8AE8B8), Color(0xFFBFFFE0)),
 ];
 
 BoardTheme boardThemeById(String id) =>

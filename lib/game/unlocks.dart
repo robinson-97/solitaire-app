@@ -71,6 +71,12 @@ const boardRules = <String, UnlockRule>{
   'ocean': UnlockRule('coral', 2, 5, 74),
   'candy': UnlockRule('candy', 2, 3, 74),
   'aurora': UnlockRule('frozen', 3, 5, 75),
+  'clockwork': UnlockRule('ruins', 2, 3, 74),
+  'circuit': UnlockRule('cyber', 2, 3, 75),
+  'pond': UnlockRule('sakura', 2, 5, 74),
+  'storm': UnlockRule('skyislands', 3, 3, 76),
+  'honey': UnlockRule('countryside', 3, 5, 74),
+  'jade': UnlockRule('jungle', 3, 3, 75),
 };
 
 /// Rewards that a given board can earn, for display on level/board cards.
