@@ -215,7 +215,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           child: Stack(fit: StackFit.expand, children: [
             ColorFiltered(
               colorFilter: open ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _grey,
-              child: SceneArt(w.id, delay: Duration(milliseconds: 90 * (index % 6))),
+              child: SceneArt('neon:${w.id}', delay: Duration(milliseconds: 90 * (index % 6))),
             ),
             DecoratedBox(
               decoration: BoxDecoration(

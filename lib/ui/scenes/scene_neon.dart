@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'kit.dart';
 
 /// Neon accent pair per world (used for the dark "neon night" backdrops).
 const neonPalette = <String, (Color, Color)>{
@@ -24,3 +25,38 @@ const neonPalette = <String, (Color, Color)>{
   'deepsea': (Color(0xFF35F0FF), Color(0xFF7A5CFF)),
   'skyislands': (Color(0xFF7AD0FF), Color(0xFFB07CFF)),
 };
+
+const _ink = Color(0xFF05071A);
+
+Layer _blob(Color col, Offset at, double radius, {double alpha = 0.42, double dx = 0.1, double dy = 0.05, double phase = 0}) => Layer.still((c, s) {
+      final o = Offset(s.width * at.dx, s.height * at.dy);
+      final r = s.width * radius;
+      c.drawCircle(
+        o,
+        r,
+        Paint()..shader = RadialGradient(colors: [col.withValues(alpha: alpha), col.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: o, radius: r)),
+      );
+    }, driftX: dx, driftY: dy, driftCycles: 1, driftPhase: phase);
+
+/// Simple dark backdrop in one world's colours: two big soft glows that drift
+/// very slowly, plus a few tiny lights floating up.
+SceneSpec neonScene(String id) {
+  final (a, b) = neonPalette[id] ?? neonPalette['menu']!;
+  final h = id.codeUnits.fold<int>(7, (x, y) => (x * 31 + y) & 0xFFFF);
+  double f(int k) => ((h >> k) & 7) / 7.0;
+  return SceneSpec(
+    focusY: 0,
+    topShade: 0.0,
+    bottomShade: 0.1,
+    layers: [
+      Layer.still((c, s) => fillSky(c, s, [mix(_ink, a, 0.07), mix(_ink, b, 0.07), mix(_ink, b, 0.14)], const [0.0, 0.55, 1.0])),
+      _blob(a, Offset(0.1 + 0.3 * f(0), 0.12 + 0.25 * f(2)), 0.6, alpha: 0.6, dx: 0.10, dy: 0.05),
+      _blob(b, Offset(0.65 + 0.3 * f(1), 0.62 + 0.3 * f(3)), 0.62, alpha: 0.5, dx: -0.10, dy: -0.04, phase: 0.5),
+      Layer.live((c, s, k) => paintParticles(
+          c,
+          s,
+          k,
+          ParticleSpec(count: 16, seed: 9, colors: [a, b, const Color(0xFFFFFFFF)], minSize: 1.2, maxSize: 2.6, flow: const Offset(0, -0.1), cycles: 1, spread: 1, wander: 8, twinkle: 0.6, shape: ParticleShape.glow, region: const Rect.fromLTRB(0, 0.05, 1, 1), haloScale: 2.6, opacity: 0.8))),
+    ],
+  );
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'kit.dart';
+import 'scene_neon.dart';
 import 'world_01_forest.dart';
 import 'world_02_desert.dart';
 import 'world_03_coral.dart';
@@ -50,7 +51,7 @@ final Map<String, SceneBuilder> _builders = {
 final Map<String, SceneSpec> _cache = {};
 
 SceneSpec sceneFor(String id) => _cache.putIfAbsent(id, () {
-      if (id == 'menu') return SceneSpec(layers: cyberScene().layers, topShade: 0.5, bottomShade: 0.62);
+      if (id == 'menu' || id.startsWith('neon:')) return neonScene(id == 'menu' ? 'menu' : id.substring(5));
       return (_builders[id] ?? _placeholder)();
     });
 
