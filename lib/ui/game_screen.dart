@@ -772,7 +772,13 @@ class _BoardPainter extends CustomPainter {
     canvas.save();
     canvas.translate(0, tb.thick + 6);
     canvas.transform(m);
-    canvas.drawPath(wood, Paint()..color = const Color(0xFF14233A).withValues(alpha: 0.32));
+    canvas.drawPath(wood, Paint()..color = Colors.black.withValues(alpha: 0.75)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14));
+    canvas.restore();
+
+    // lantern glow around the board
+    canvas.save();
+    canvas.transform(m);
+    canvas.drawPath(wood, Paint()..color = lantern.withValues(alpha: 0.10 + 0.06 * pulse)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30));
     canvas.restore();
 
     // thickness: stack of darker copies pushed down the screen
@@ -781,19 +787,24 @@ class _BoardPainter extends CustomPainter {
       canvas.save();
       canvas.translate(0, i.toDouble());
       canvas.transform(m);
-      canvas.drawPath(wood, Paint()..color = i > steps * 0.45 ? theme.side : Color.lerp(theme.body[2], theme.side, 0.35)!);
+      canvas.drawPath(wood, Paint()..color = Color.lerp(theme.body[2], theme.side, i / steps)!);
       canvas.restore();
     }
 
     canvas.save();
     canvas.transform(m);
     // top surface
-    canvas.drawPath(wood, Paint()..color = theme.body[1]);
+    canvas.drawPath(
+      wood,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: theme.body,
+        ).createShader(bounds),
+    );
     canvas.save();
     canvas.clipPath(wood);
-    // flat lighter band along the upper-left of the slab (cel shading)
-    canvas.drawPath(wood.shift(Offset(cell * 0.1, cell * 0.14)), Paint()..color = theme.body[1]);
-    canvas.drawRect(bounds, Paint()..color = theme.body[0].withValues(alpha: 0.0));
     if (theme.kind == BoardKind.pitch) {
       // mown stripes and white pitch markings
       for (var i = 0; i < 14; i++) {
@@ -808,7 +819,7 @@ class _BoardPainter extends CustomPainter {
     } else if (theme.kind == BoardKind.neon) {
       // glowing synthwave grid
       final cyan = theme.accent.withValues(alpha: 0.18 + 0.1 * pulse);
-      final gl = Paint()..color = cyan..strokeWidth = 3;
+      final gl = Paint()..color = cyan..strokeWidth = 4..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
       final ln = Paint()..color = theme.accent.withValues(alpha: 0.5)..strokeWidth = 1;
       for (var x = bounds.left; x <= bounds.right; x += cell * 0.5) {
         canvas.drawLine(Offset(x, bounds.top), Offset(x, bounds.bottom), gl);
@@ -834,7 +845,8 @@ class _BoardPainter extends CustomPainter {
       final glowPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6
-        ..color = theme.accent.withValues(alpha: 0.2 + 0.15 * pulse);
+        ..color = theme.accent.withValues(alpha: 0.25 + 0.2 * pulse)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
       if (theme.kind == BoardKind.rune) {
         // glowing carved glyphs
         final gr = Random(21);
@@ -879,16 +891,16 @@ class _BoardPainter extends CustomPainter {
       }
     }
     // carved bevel
-    canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = Colors.black.withValues(alpha: 0.2));
-    canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 4..color = Colors.white.withValues(alpha: 0.22));
+    canvas.drawPath(wood.shift(const Offset(2.5, 2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.black.withValues(alpha: 0.35));
+    canvas.drawPath(wood.shift(const Offset(-2.5, -2.5)), Paint()..style = PaintingStyle.stroke..strokeWidth = 5..color = Colors.white.withValues(alpha: 0.3));
     // moss
-    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : theme.kind == BoardKind.pitch || theme.kind == BoardKind.neon ? 0.0 : 0.28);
+    final moss = Paint()..color = theme.moss.withValues(alpha: theme.kind == BoardKind.stone ? 0.7 : theme.kind == BoardKind.wood ? 0.5 : theme.kind == BoardKind.pitch || theme.kind == BoardKind.neon ? 0.0 : 0.28)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
     final mossSpots = theme.kind == BoardKind.stone ? 7 : theme.kind == BoardKind.wood ? 3 : 4;
     final mr = Random(8);
     for (var i = 0; i < mossSpots; i++) {
       final x = bounds.left + mr.nextDouble() * bounds.width;
       final y = bounds.top + (i.isEven ? 0.1 : 0.9) * bounds.height + (mr.nextDouble() - 0.5) * cell;
-      canvas.drawCircle(Offset(x, y), cell * (0.22 + mr.nextDouble() * 0.2), moss);
+      canvas.drawCircle(Offset(x, y), cell * (0.3 + mr.nextDouble() * 0.25), moss);
     }
     canvas.restore();
     canvas.drawPath(wood, Paint()..style = PaintingStyle.stroke..strokeWidth = 2..color = Colors.black.withValues(alpha: 0.6));
@@ -897,11 +909,21 @@ class _BoardPainter extends CustomPainter {
     for (final h in tb.flat.def.holes) {
       final c = tb.flat.centerOf(h);
       final r = cell * 0.37;
-      canvas.drawCircle(c + const Offset(0, 2), r + 1, Paint()..color = Colors.white.withValues(alpha: 0.28));
-      canvas.drawCircle(c, r, Paint()..color = theme.holeOuter);
-      canvas.drawCircle(c + Offset(0, r * 0.14), r * 0.82, Paint()..color = theme.holeInner);
+      canvas.drawCircle(c + const Offset(0, 2), r + 1, Paint()..color = Colors.white.withValues(alpha: 0.25));
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(0, 0.55),
+            radius: 1.0,
+            colors: [theme.holeInner, theme.holeOuter],
+          ).createShader(Rect.fromCircle(center: c, radius: r)),
+      );
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r - 1.5), pi * 1.05, pi * 0.9, false,
+          Paint()..style = PaintingStyle.stroke..strokeWidth = 3..color = Colors.black.withValues(alpha: 0.6));
       if (targets.contains(h)) {
-        canvas.drawCircle(c, r * 1.35, Paint()..color = lantern.withValues(alpha: 0.2 + 0.12 * pulse));
+        canvas.drawCircle(c, r * 1.3, Paint()..color = lantern.withValues(alpha: 0.45 + 0.25 * pulse)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
         canvas.drawCircle(c, r * 0.55, Paint()..color = lantern.withValues(alpha: 0.85));
         canvas.drawCircle(c, r * (0.9 + 0.08 * pulse), Paint()..color = const Color(0xFFFFE0A0)..style = PaintingStyle.stroke..strokeWidth = 2.5);
       }
@@ -1039,8 +1061,15 @@ class _ResultDialogState extends State<_ResultDialog> {
         padding: const EdgeInsets.all(22),
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(widget.cleared ? 'Level cleared!' : 'Not cleared yet',
-                style: displayFont.copyWith(fontSize: 30, fontWeight: FontWeight.w800, color: widget.cleared ? const Color(0xFFFFD25A) : const Color(0xFFD9DDF2))),
+            ShaderMask(
+              shaderCallback: (r) => LinearGradient(
+                colors: widget.cleared
+                    ? const [Color(0xFFFFE9A8), Color(0xFFFFA43B)]
+                    : const [Color(0xFFD8DCF5), Color(0xFF8E96C9)],
+              ).createShader(r),
+              child: Text(widget.cleared ? 'Level cleared!' : 'Not cleared yet',
+                  style: displayFont.copyWith(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
             const SizedBox(height: 6),
             if (widget.cleared)
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
