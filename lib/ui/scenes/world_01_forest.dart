@@ -2,27 +2,34 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'kit.dart';
 
-// Enchanted Forest, painted in a gentle storybook / gouache mood: an ancient
-// camphor-like tree, golden light through big clouds, a clear stream, ferns,
-// wildflowers; seeds and forest lights drift in the sunbeams.
+// Enchanted Forest in flat, graphic 2D: big friendly clouds, layered green
+// hills and woods, one ancient tree, a clear stream. Seeds and forest lights
+// drift in the air. Flat colours, two-tone shading, smooth rounded shapes.
 
-const _sun = Offset(0.80, 0.17); // fractions of the screen
-const _haze = Color(0xFFD7EBC9);
+const _sun = Offset(0.78, 0.15); // fractions of the screen
 
-double _lerp(double a, double b, double t) => a + (b - a) * t;
+// palette
+const _skyTop = Color(0xFF4FA8DA), _skyMid = Color(0xFF8ED0EA), _skyLow = Color(0xFFEAF5DF);
+const _cloud = Color(0xFFFFFFFF), _cloudShade = Color(0xFFCFE2F2);
+const _hillFar = Color(0xFFA6D4C6), _hillFarShade = Color(0xFF8FC6B9), _hillMid = Color(0xFF8CC9B2), _hillMidShade = Color(0xFF76B9A2);
+const _woodA = Color(0xFF6FB796), _woodB = Color(0xFF52A67F), _woodC = Color(0xFF3C9569);
+const _woodLightA = Color(0xFF90CDAE), _woodLightB = Color(0xFF72BD94), _woodLightC = Color(0xFF58AC7D);
+const _meadowA = Color(0xFF86C766), _meadowB = Color(0xFF63B552), _meadowC = Color(0xFF489F49);
+const _meadowLight = Color(0xFFB3E27C);
+const _trunk = Color(0xFF7A5238), _trunkShade = Color(0xFF5E3E2B);
+const _crown = Color(0xFF2E9A58), _crownDark = Color(0xFF247F4B), _crownLight = Color(0xFF66C96A);
+const _water = Color(0xFF55C0D6), _waterLight = Color(0xFF9BE3EA), _bank = Color(0xFF2F8F6A);
 
 SceneSpec forestScene() => SceneSpec(
       focusY: -0.1,
-      topShade: 0.18,
-      bottomShade: 0.32,
+      topShade: 0.14,
+      bottomShade: 0.3,
       layers: [
         Layer.still(_sky),
         Layer.scroll(_cloudsBack, scrollCycles: 1, bandTop: 0.0, bandBottom: 0.4),
         Layer.still(_mountains, driftX: 0.005, driftCycles: 2),
-        Layer.scroll(_cloudsFront, scrollCycles: 2, bandTop: 0.1, bandBottom: 0.5),
-        Layer.still(_rays, rotate: 0.03, swayCycles: 3, pivot: const Alignment(0.6, -0.7)),
-        Layer.still(_farWoods, driftX: 0.01, driftCycles: 2, sway: 0.004, swayCycles: 5),
-        Layer.live(_farMist),
+        Layer.scroll(_cloudsFront, scrollCycles: 2, bandTop: 0.2, bandBottom: 0.5),
+        Layer.still(_woods, driftX: 0.01, driftCycles: 2, sway: 0.004, swayCycles: 5),
         Layer.still(_meadow, driftX: 0.016, driftCycles: 2, driftPhase: 0.1),
         Layer.still(_hero, driftX: 0.022, driftCycles: 2, driftPhase: 0.15, sway: 0.003, swayCycles: 4, pivot: const Alignment(-0.2, 1)),
         Layer.still(_stream, driftX: 0.028, driftCycles: 2, driftPhase: 0.2),
@@ -32,27 +39,23 @@ SceneSpec forestScene() => SceneSpec(
         Layer.live(_seeds),
         Layer.live(_spirits),
         Layer.live(_butterflies),
-        Layer.live(_nearMist),
       ],
     );
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
 
 // ---------------------------------------------------------------- sky
 
 void _sky(Canvas c, Size s) {
-  const cols = [Color(0xFF3F8FB4), Color(0xFF7CC7C9), Color(0xFFC6E6C4), Color(0xFFF7EDBE), Color(0xFFFFF4D2)];
-  const stops = [0.0, 0.2, 0.36, 0.48, 1.0];
-  paintSkyWash(c, s, cols, stops: stops, seed: 4, strokes: 300, alpha: 0.2);
-  final o = Offset(_sun.dx * s.width, _sun.dy * s.height);
-  glow(c, o, s.width * 1.1, const Color(0xFFFFE9A8), 0.4);
-  glow(c, o, s.width * 0.4, const Color(0xFFFFF6D4), 0.6);
-  c.drawCircle(o, s.width * 0.07, radialPaint(o, s.width * 0.07, const [Color(0xFFFFFFF4), Color(0xFFFFF3C0)], const [0.5, 1.0]));
+  fillSky(c, s, const [_skyTop, _skyMid, _skyLow, Color(0xFFF7F1CF)], const [0.0, 0.25, 0.46, 1.0]);
+  flatSun(c, Offset(_sun.dx * s.width, _sun.dy * s.height), s.width * 0.065);
 }
 
 void _cloudsBack(Canvas c, Size s) {
   final r = rng(7);
   for (var i = 0; i < 3; i++) {
-    final x = (i + 0.25 + r.nextDouble() * 0.5) * s.width / 3;
-    paintCumulus(c, Offset(x, s.height * (0.15 + r.nextDouble() * 0.12)), s.width * (0.42 + r.nextDouble() * 0.2), seed: i + 17, lit: const Color(0xFFFFFCEF), mid: const Color(0xFFE6F0F0), shade: const Color(0xFF9FBAD8), opacity: 0.95);
+    final x = (i + 0.3 + r.nextDouble() * 0.4) * s.width / 3;
+    flatCloud(c, Offset(x, s.height * (0.15 + r.nextDouble() * 0.12)), s.width * (0.44 + r.nextDouble() * 0.16), color: _cloud, shade: _cloudShade, seed: i + 17, puff: 1.1);
   }
 }
 
@@ -60,199 +63,164 @@ void _cloudsFront(Canvas c, Size s) {
   final r = rng(19);
   for (var i = 0; i < 2; i++) {
     final x = (i + 0.3 + r.nextDouble() * 0.4) * s.width / 2;
-    paintCumulus(c, Offset(x, s.height * (0.36 + r.nextDouble() * 0.04)), s.width * (0.3 + r.nextDouble() * 0.12), seed: i + 31, lit: const Color(0xFFFFFFFA), mid: const Color(0xFFEDF3F0), shade: const Color(0xFFB0C6E0), opacity: 0.95, height: s.width * 0.12);
+    flatCloud(c, Offset(x, s.height * (0.34 + r.nextDouble() * 0.05)), s.width * (0.28 + r.nextDouble() * 0.1), color: const Color(0xFFFFFFFF), shade: const Color(0xFFD8E8F4), seed: i + 31, puff: 0.9);
   }
 }
 
 void _mountains(Canvas c, Size s) {
-  final h = s.height;
-  final far = Ridge(s, y: 0.43, amp: 0.035, freq: 1.5, seed: 12, octaves: 3);
-  paintRidge(c, far, top: const Color(0xFF9CC9BE), bottom: const Color(0xFFC6E2CC), rim: Colors.white, rimAlpha: 0.35);
-  paintBrushwork(c, Rect.fromLTRB(0, far.top, s.width, 0.5 * h), clip: far.fill(), colors: const [Color(0xFFB7DCC9), Color(0xFF86B8AE)], strokes: 70, alpha: 0.18, thickness: 5, angle: 0.06);
-  final mid = Ridge(s, y: 0.46, amp: 0.03, freq: 2.1, seed: 5, octaves: 3);
-  paintRidge(c, mid, top: const Color(0xFF7DB79C), bottom: const Color(0xFFAFD7B4), rim: const Color(0xFFFFF3C4), rimAlpha: 0.45);
-  paintBrushwork(c, Rect.fromLTRB(0, mid.top, s.width, 0.55 * h), clip: mid.fill(), colors: const [Color(0xFF9CCDA6), Color(0xFF6BA88E)], strokes: 80, alpha: 0.2, thickness: 5, angle: 0.04);
-  paintMist(c, Rect.fromLTRB(0, 0.4 * h, s.width, 0.54 * h), _haze, 0.6);
-}
-
-void _rays(Canvas c, Size s) {
-  final o = Offset(_sun.dx * s.width, _sun.dy * s.height);
-  glow(c, o, s.width * 0.7, const Color(0xFFFFEFB0), 0.28, true);
-  glow(c, o, s.width * 0.25, const Color(0xFFFFFFFF), 0.4, true);
-  paintRays(c, o, length: s.height * 1.0, centerAngle: math.pi * 0.62, spread: 1.5, count: 8, opacity: 0.2, color: const Color(0xFFFFEFB8), seed: 3, minWidth: 0.07, maxWidth: 0.18);
-  paintRays(c, o, length: s.height * 0.75, centerAngle: math.pi * 0.6, spread: 1.0, count: 4, opacity: 0.14, color: const Color(0xFFFFFFFF), seed: 8, minWidth: 0.03, maxWidth: 0.06);
+  final far = Ridge(s, y: 0.43, amp: 0.04, freq: 1.4, seed: 12, octaves: 2, sharp: 0.35);
+  flatMountains(c, far, _hillFar, _hillFarShade);
+  final mid = Ridge(s, y: 0.46, amp: 0.03, freq: 2.0, seed: 5, octaves: 2, sharp: 0.25);
+  flatMountains(c, mid, _hillMid, _hillMidShade);
 }
 
 // ---------------------------------------------------------------- woods
 
-void _farWoods(Canvas c, Size s) {
-  final h = s.height, w = s.width;
+void _woods(Canvas c, Size s) {
+  final w = s.width, h = s.height;
   final r = rng(21);
-  final ridge = Ridge(s, y: 0.52, amp: 0.012, freq: 3, seed: 40);
+  const crowns = [_woodA, _woodB, _woodC];
+  const lights = [_woodLightA, _woodLightB, _woodLightC];
   for (var row = 0; row < 3; row++) {
-    final haze = 0.5 - row * 0.17;
+    final ridge = Ridge(s, y: 0.505 + row * 0.03, amp: 0.008, freq: 3, seed: 40 + row);
     var x = -w * 0.05;
     while (x < w * 1.05) {
-      final rad = w * (0.06 + r.nextDouble() * 0.05) * (1 + row * 0.25);
-      final y = ridge.yAt(x) + h * (0.012 + row * 0.024) - rad * 0.55;
-      paintFoliage(
-        c,
-        Offset(x, y),
-        rad,
-        dark: hazeTo(const Color(0xFF2A7A5C), _haze, haze),
-        mid: hazeTo(const Color(0xFF4FA06A), _haze, haze),
-        light: hazeTo(const Color(0xFFB4DE78), _haze, haze * 0.8),
-        seed: r.nextInt(9999),
-        density: 0.8,
-      );
-      x += rad * (1.0 + r.nextDouble() * 0.5);
+      final th = h * (0.085 + r.nextDouble() * 0.05) * (1 + row * 0.25);
+      final base = Offset(x, ridge.yAt(x) + 3);
+      if (r.nextDouble() < 0.28) {
+        flatPine(c, base, th * 1.15, color: crowns[row], shade: darken(crowns[row], 0.05), tiers: 3);
+      } else {
+        flatTree(c, base, th, crown: crowns[row], light: lights[row], trunk: darken(crowns[row], 0.12), trunkShade: darken(crowns[row], 0.16), seed: r.nextInt(999), lean: (r.nextDouble() - 0.5) * 0.3);
+      }
+      x += th * (0.5 + r.nextDouble() * 0.35);
     }
-    // ground under each row
-    final g = Ridge(s, y: 0.535 + row * 0.024, amp: 0.008, freq: 3, seed: 60 + row);
-    paintRidge(c, g, top: hazeTo(const Color(0xFF4A9A62), _haze, haze * 0.8), bottom: hazeTo(const Color(0xFF3E8A58), _haze, haze * 0.8));
-  }
-}
-
-void _farMist(Canvas c, Size s, Clock k) {
-  for (var i = 0; i < 3; i++) {
-    final w = s.width * (1.1 + i * 0.3);
-    final x = -w * 0.6 + k.saw(1, i / 3) * (s.width + w * 1.2);
-    softEllipse(c, Offset(x, s.height * (0.52 + i * 0.04)), w, s.height * 0.07, _haze, 0.5);
+    flatRidge(c, ridge, crowns[row]);
   }
 }
 
 void _meadow(Canvas c, Size s) {
-  final w = s.width, h = s.height;
   final ridge = Ridge(s, y: 0.62, amp: 0.02, freq: 1.7, seed: 77, tilt: 0.02);
-  paintRidge(c, ridge, top: const Color(0xFF86C46A), bottom: const Color(0xFF3F8F4E), rim: const Color(0xFFF1FFB5), rimAlpha: 0.5);
-  paintBrushwork(c, Rect.fromLTRB(0, ridge.top, w, h), clip: ridge.fill(), colors: const [Color(0xFFB9E37A), Color(0xFF5FB060), Color(0xFF2F8A4C)], strokes: 220, alpha: 0.22, thickness: 6, angle: -0.08, minLen: 20, maxLen: 70);
-  paintGrassBlades(c, Rect.fromLTRB(0, ridge.top + 4, w, h * 0.74), count: 260, minH: 5, maxH: 15, lean: 0.25, seed: 5);
-  paintWildflowers(c, Rect.fromLTRB(0, h * 0.64, w, h * 0.76), colors: const [Color(0xFFFFFFFF), Color(0xFFFFF0A0), Color(0xFFB9A6F0)], count: 46, size: 1.9, seed: 8);
+  flatRidge(c, ridge, _meadowA, light: _meadowLight, band: 3);
+  final r2 = Ridge(s, y: 0.7, amp: 0.018, freq: 1.3, seed: 31, tilt: -0.03);
+  flatRidge(c, r2, _meadowB, light: const Color(0xFF9ED86E), band: 3);
+  // tiny flowers
+  final r = rng(8);
+  const cols = [Color(0xFFFFFFFF), Color(0xFFFFF0A0), Color(0xFFC7B6F2)];
+  for (var i = 0; i < 40; i++) {
+    final x = r.nextDouble() * s.width;
+    final y = s.height * (0.65 + r.nextDouble() * 0.2);
+    c.drawCircle(Offset(x, y), 1.4 + r.nextDouble() * 0.8, Paint()..color = cols[i % 3]);
+  }
 }
 
 // ---------------------------------------------------------------- the ancient tree
 
 void _hero(Canvas c, Size s) {
   final w = s.width, h = s.height;
-  // trunk with roots, lit from the upper right
-  final base = Offset(w * 0.33, h * 0.80);
+  final base = Offset(w * 0.33, h * 0.79);
   final trunk = Path()
     ..moveTo(base.dx - w * 0.2, base.dy + h * 0.03)
-    ..cubicTo(base.dx - w * 0.1, base.dy - h * 0.02, base.dx - w * 0.09, base.dy - h * 0.1, base.dx - w * 0.1, base.dy - h * 0.2)
-    ..cubicTo(base.dx - w * 0.09, base.dy - h * 0.34, base.dx - w * 0.08, base.dy - h * 0.42, base.dx - w * 0.06, base.dy - h * 0.55)
-    ..lineTo(base.dx + w * 0.11, base.dy - h * 0.55)
-    ..cubicTo(base.dx + w * 0.115, base.dy - h * 0.4, base.dx + w * 0.12, base.dy - h * 0.3, base.dx + w * 0.13, base.dy - h * 0.18)
-    ..cubicTo(base.dx + w * 0.13, base.dy - h * 0.06, base.dx + w * 0.2, base.dy, base.dx + w * 0.28, base.dy + h * 0.03)
+    ..cubicTo(base.dx - w * 0.09, base.dy - h * 0.01, base.dx - w * 0.09, base.dy - h * 0.1, base.dx - w * 0.085, base.dy - h * 0.2)
+    ..cubicTo(base.dx - w * 0.08, base.dy - h * 0.34, base.dx - w * 0.07, base.dy - h * 0.44, base.dx - w * 0.05, base.dy - h * 0.55)
+    ..lineTo(base.dx + w * 0.1, base.dy - h * 0.55)
+    ..cubicTo(base.dx + w * 0.105, base.dy - h * 0.4, base.dx + w * 0.115, base.dy - h * 0.3, base.dx + w * 0.125, base.dy - h * 0.18)
+    ..cubicTo(base.dx + w * 0.14, base.dy - h * 0.05, base.dx + w * 0.2, base.dy, base.dx + w * 0.3, base.dy + h * 0.03)
     ..close();
-  c.drawPath(trunk, linearPaint(Offset(base.dx - w * 0.1, 0), Offset(base.dx + w * 0.14, 0), const [Color(0xFF3F2E27), Color(0xFF6A4A36), Color(0xFFB08458)], const [0.0, 0.6, 1.0]));
-  paintBrushwork(c, trunk.getBounds(), clip: trunk, colors: const [Color(0xFF2E211D), Color(0xFF8A6244), Color(0xFF5A4030)], strokes: 150, alpha: 0.26, thickness: 4, angle: math.pi / 2, minLen: 30, maxLen: 120, angleJitter: 0.12);
-  // moss on the trunk base and roots
-  final moss = Path()
-    ..moveTo(base.dx - w * 0.16, base.dy + h * 0.02)
-    ..quadraticBezierTo(base.dx - w * 0.06, base.dy - h * 0.13, base.dx + w * 0.02, base.dy - h * 0.07)
-    ..quadraticBezierTo(base.dx + w * 0.1, base.dy - h * 0.14, base.dx + w * 0.22, base.dy + h * 0.02)
-    ..close();
-  c.save();
-  c.clipPath(trunk);
-  c.drawPath(wobblePath(moss, amp: 2.5, seed: 4), verticalPaint(moss.getBounds(), const [Color(0xFF9BDB5C), Color(0xFF3F8F46)]));
-  c.restore();
-  // sunlit rim on the right of the trunk
-  c.drawPath(
-    Path()
-      ..moveTo(base.dx + w * 0.11, base.dy - h * 0.55)
-      ..cubicTo(base.dx + w * 0.115, base.dy - h * 0.4, base.dx + w * 0.12, base.dy - h * 0.3, base.dx + w * 0.13, base.dy - h * 0.18)
-      ..cubicTo(base.dx + w * 0.13, base.dy - h * 0.06, base.dx + w * 0.2, base.dy, base.dx + w * 0.28, base.dy + h * 0.03),
-    Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFFFE3A0).withValues(alpha: 0.85),
-  );
-
-  // limbs reaching into the crown
-  final limb = Paint()
+  c.drawPath(trunk, Paint()..color = _trunk);
+  c
+    ..save()
+    ..clipPath(trunk)
+    ..drawRect(Rect.fromLTRB(base.dx + w * 0.02, 0, w, h), Paint()..color = _trunkShade)
+    ..restore();
+  // a few flat bark lines
+  final bark = Paint()
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
-    ..color = const Color(0xFF4A3528);
-  for (final (dx, dy, wd) in [(-0.2, -0.2, 9.0), (0.22, -0.18, 8.0), (-0.02, -0.28, 10.0)]) {
-    final top = Offset(base.dx + w * dx, h * (0.78 + dy) - h * 0.45);
-    c.drawPath(
-      Path()
-        ..moveTo(base.dx + w * 0.02, base.dy - h * 0.5)
-        ..quadraticBezierTo(base.dx + w * dx * 0.3, base.dy - h * 0.58, top.dx, top.dy),
-      limb..strokeWidth = wd,
-    );
+    ..strokeWidth = 2.4
+    ..color = const Color(0xFF4F3324);
+  for (final (dx, dy, len) in [(-0.04, -0.12, 0.09), (0.0, -0.3, 0.1), (-0.055, -0.38, 0.06), (0.05, -0.2, 0.08)]) {
+    c.drawLine(Offset(base.dx + w * dx, base.dy + h * dy), Offset(base.dx + w * dx - 2, base.dy + h * (dy + len)), bark);
   }
-  // great crown: airy clumps with a few gaps showing sky
-  final cr = Offset(w * 0.3, h * 0.22);
-  final parts = <(Offset, double)>[
-    (cr + Offset(w * 0.0, h * 0.0), w * 0.34),
-    (cr + Offset(w * 0.33, -h * 0.01), w * 0.26),
-    (cr + Offset(-w * 0.32, h * 0.015), w * 0.26),
-    (cr + Offset(w * 0.08, -h * 0.095), w * 0.28),
-    (cr + Offset(w * 0.22, h * 0.095), w * 0.22),
-    (cr + Offset(-w * 0.2, h * 0.095), w * 0.21),
+  // roots mossy cap at the base
+  final moss = Path()
+    ..moveTo(base.dx - w * 0.2, base.dy + h * 0.03)
+    ..quadraticBezierTo(base.dx - w * 0.1, base.dy - h * 0.1, base.dx - w * 0.02, base.dy - h * 0.06)
+    ..quadraticBezierTo(base.dx + w * 0.08, base.dy - h * 0.12, base.dx + w * 0.3, base.dy + h * 0.03)
+    ..close();
+  c
+    ..save()
+    ..clipPath(trunk)
+    ..drawPath(moss, Paint()..color = const Color(0xFF5DB55A))
+    ..restore();
+
+  // crown: big round clumps, dark back layer then lighter front layer
+  final cr = Offset(w * 0.3, h * 0.23);
+  final back = <(Offset, double)>[
+    (cr + Offset(w * 0.0, h * 0.0), w * 0.25),
+    (cr + Offset(w * 0.27, h * 0.01), w * 0.18),
+    (cr + Offset(-w * 0.26, h * 0.02), w * 0.18),
+    (cr + Offset(w * 0.06, -h * 0.06), w * 0.2),
   ];
-  var k = 0;
-  for (final (o, rad) in parts) {
-    paintFoliage(c, o, rad, dark: const Color(0xFF17513C), mid: const Color(0xFF3A8A56), light: const Color(0xFFB4E070), lightDir: const Offset(0.7, -0.7), seed: 100 + k++, density: 1.0);
+  final front = <(Offset, double)>[
+    (cr + Offset(w * 0.19, h * 0.07), w * 0.16),
+    (cr + Offset(-w * 0.17, h * 0.075), w * 0.15),
+    (cr + Offset(w * 0.0, h * 0.045), w * 0.2),
+  ];
+  for (final (o, r) in back) {
+    c.drawCircle(o, r, Paint()..color = _crownDark);
   }
-  // hanging moss/vines under the crown
-  final r = rng(12);
-  for (var i = 0; i < 9; i++) {
-    final x = w * (0.05 + r.nextDouble() * 0.55);
-    final len = h * (0.04 + r.nextDouble() * 0.08);
-    final y0 = h * (0.27 + r.nextDouble() * 0.04);
+  for (final (o, r) in back) {
+    c.drawCircle(o + Offset(r * 0.06, r * 0.08), r * 0.9, Paint()..color = _crown);
+    c.drawCircle(o + Offset(-r * 0.1, -r * 0.14), r * 0.5, Paint()..color = _crownLight);
+  }
+  for (final (o, r) in front) {
+    c.drawCircle(o, r, Paint()..color = _crownDark);
+    c.drawCircle(o + Offset(r * 0.06, r * 0.08), r * 0.9, Paint()..color = _crown);
+    c.drawCircle(o + Offset(-r * 0.12, -r * 0.16), r * 0.52, Paint()..color = _crownLight);
+  }
+  // little flat leaf clusters on the crown
+  final rr = rng(5);
+  for (var i = 0; i < 26; i++) {
+    final a = rr.nextDouble() * tau, d = math.sqrt(rr.nextDouble()) * w * 0.4;
+    final o = cr + Offset(math.cos(a) * d * 1.1, math.sin(a) * d * 0.62);
+    c.drawCircle(o, 3 + rr.nextDouble() * 3, Paint()..color = _crownLight.withValues(alpha: 0.9));
+  }
+  // hanging vines
+  final vine = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeWidth = 2
+    ..color = const Color(0xFF3A9A4F);
+  for (var i = 0; i < 8; i++) {
+    final x = w * (0.06 + rr.nextDouble() * 0.55);
+    final y0 = h * (0.27 + rr.nextDouble() * 0.03);
+    final len = h * (0.03 + rr.nextDouble() * 0.06);
     c.drawPath(
       Path()
         ..moveTo(x, y0)
         ..quadraticBezierTo(x + 4, y0 + len * 0.5, x - 2, y0 + len),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round
-        ..color = const Color(0xFF3F8F46),
+      vine,
     );
-    for (var j = 1; j <= 3; j++) {
-      c.drawOval(Rect.fromCenter(center: Offset(x + (j.isEven ? 3 : -3), y0 + len * j / 4), width: 6, height: 3), Paint()..color = const Color(0xFFA6D86A));
-    }
+    c.drawCircle(Offset(x - 2, y0 + len), 2.6, Paint()..color = _crownLight);
   }
 }
 
 // ---------------------------------------------------------------- stream & ground
 
-Path _streamPath(Size s) {
-  final w = s.width, h = s.height;
-  final center = <Offset>[Offset(w * 0.76, h * 0.612), Offset(w * 0.72, h * 0.64), Offset(w * 0.64, h * 0.71), Offset(w * 0.55, h * 0.79), Offset(w * 0.5, h * 0.88), Offset(w * 0.52, h * 1.06)];
-  final half = <double>[w * 0.008, w * 0.03, w * 0.06, w * 0.09, w * 0.14, w * 0.2];
-  final left = <Offset>[], right = <Offset>[];
-  for (var i = 0; i < center.length; i++) {
-    final a = center[math.max(i - 1, 0)], b = center[math.min(i + 1, center.length - 1)];
-    var d = b - a;
-    d = d / d.distance;
-    final n = Offset(-d.dy, d.dx);
-    left.add(center[i] - n * half[i]);
-    right.add(center[i] + n * half[i]);
-  }
-  return smoothPath([...left, ...right.reversed], closed: true);
-}
-
 void _stream(Canvas c, Size s) {
-  final p = _streamPath(s);
-  final b = p.getBounds();
-  c.drawPath(p.shift(const Offset(0, 3)), Paint()..color = const Color(0xFF2B6A4A));
-  c.drawPath(p, verticalPaint(b, const [Color(0xFFA6EFE0), Color(0xFF55C7C3), Color(0xFF2FA0B0)]));
-  paintBrushwork(c, b, clip: p, colors: const [Color(0xFFD6FFF0), Color(0xFF2B93AA), Color(0xFF8EE6DD)], strokes: 90, alpha: 0.28, thickness: 4, angle: 0.9, minLen: 20, maxLen: 70, angleJitter: 0.35);
-  shadeInside(c, p, light: const Offset(0.6, -0.9), lightColor: const Color(0xFFFFF3C4), lightAlpha: 0.25, shadowColor: const Color(0xFF14506A), shadowAlpha: 0.25);
-  // grassy bank rims
-  c.drawPath(p, Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 2
-    ..color = const Color(0xFFE8FFB5).withValues(alpha: 0.6));
+  final w = s.width, h = s.height;
+  flatRibbon(
+    c,
+    [Offset(w * 0.76, h * 0.612), Offset(w * 0.72, h * 0.64), Offset(w * 0.64, h * 0.71), Offset(w * 0.55, h * 0.79), Offset(w * 0.5, h * 0.88), Offset(w * 0.52, h * 1.06)],
+    [w * 0.008, w * 0.03, w * 0.06, w * 0.09, w * 0.14, w * 0.2],
+    color: _water,
+    light: _waterLight,
+    bank: _bank,
+  );
 }
 
 void _glints(Canvas c, Size s, Clock k) {
-  paintShimmer(c, s, k, region: const Rect.fromLTRB(0.3, 0.66, 0.78, 1.0), count: 30, seed: 6, color: const Color(0xFFFFFFFF), cycles: 8);
+  paintShimmer(c, s, k, region: const Rect.fromLTRB(0.3, 0.68, 0.78, 1.0), count: 26, seed: 6, color: const Color(0xFFFFFFFF), cycles: 8);
 }
 
 void _ground(Canvas c, Size s) {
@@ -269,68 +237,78 @@ void _ground(Canvas c, Size s) {
       ..lineTo(side < 0 ? w * 0.55 : w * 0.45, h * 1.1)
       ..lineTo(side < 0 ? -w * 0.1 : w * 1.1, h * 1.1)
       ..close();
-    c.drawPath(p, verticalPaint(p.getBounds(), const [Color(0xFF7FCB62), Color(0xFF3A964E), Color(0xFF1E6040)]));
-    paintBrushwork(c, p.getBounds(), clip: p, colors: const [Color(0xFFBDEB7E), Color(0xFF3F9A54), Color(0xFF1B5A3E)], strokes: 160, alpha: 0.24, thickness: 6, angle: -0.5 * side, minLen: 18, maxLen: 60);
-    c.save();
-    c.clipPath(p);
-    paintGrassBlades(c, p.getBounds().intersect(Rect.fromLTRB(0, h * 0.82, w, h)), count: 240, minH: 8, maxH: 24, lean: 0.3 * side, seed: 20 + side);
-    c.restore();
+    c.drawPath(p, Paint()..color = _meadowC);
+    c
+      ..save()
+      ..clipPath(p)
+      ..drawPath(p.shift(const Offset(0, 4)), Paint()..color = _meadowC)
+      ..restore();
     c.drawPath(smoothPath(pts), Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = const Color(0xFFF1FFB0).withValues(alpha: 0.7));
+      ..strokeWidth = 3
+      ..color = _meadowLight);
   }
-  // flowers in the foreground meadow
-  paintWildflowers(c, Rect.fromLTRB(0, h * 0.86, w * 0.4, h * 0.99), colors: const [Color(0xFFFFFFFF), Color(0xFFFFE066), Color(0xFFF4A9C4), Color(0xFFB9A6F0)], count: 26, size: 2.8, seed: 3);
-  paintWildflowers(c, Rect.fromLTRB(w * 0.62, h * 0.86, w, h * 0.99), colors: const [Color(0xFFFFFFFF), Color(0xFFFFE066), Color(0xFFF4A9C4), Color(0xFFB9A6F0)], count: 26, size: 2.8, seed: 4);
-  // mossy stones
-  paintRock(c, Offset(w * 0.36, h * 0.945), w * 0.2, h * 0.045, seed: 12, color: const Color(0xFF7A8576), light: const Color(0xFFC7D2B0));
-  paintRock(c, Offset(w * 0.66, h * 0.925), w * 0.15, h * 0.035, seed: 14, color: const Color(0xFF727D6C), light: const Color(0xFFBCC9A6));
-  paintBush(c, Offset(w * 0.2, h * 0.9), w * 0.18, seed: 5, dark: const Color(0xFF1E6A40), light: const Color(0xFF8EDB60));
+  // grass tufts and flowers
+  final r = rng(14);
+  for (var i = 0; i < 34; i++) {
+    final side = i.isEven ? -1 : 1;
+    final x = side < 0 ? r.nextDouble() * w * 0.4 : w * 0.6 + r.nextDouble() * w * 0.4;
+    final y = h * (0.88 + r.nextDouble() * 0.1);
+    final th = h * (0.012 + r.nextDouble() * 0.014);
+    for (var k = -1; k <= 1; k++) {
+      final bx = x + k * th * 0.5;
+      c.drawPath(
+        Path()
+          ..moveTo(bx - 2, y)
+          ..quadraticBezierTo(bx + k * 3, y - th * 0.6, bx + k * th * 0.6, y - th * (k == 0 ? 1.1 : 0.85))
+          ..quadraticBezierTo(bx + k * 3 + 3, y - th * 0.5, bx + 2, y)
+          ..close(),
+        Paint()..color = k == 0 ? _meadowLight : const Color(0xFF7FCF62),
+      );
+    }
+  }
+  const petals = [Color(0xFFFFFFFF), Color(0xFFFFE066), Color(0xFFF4A9C4), Color(0xFFC7B6F2)];
+  for (var i = 0; i < 28; i++) {
+    final side = i.isEven ? -1 : 1;
+    final x = side < 0 ? r.nextDouble() * w * 0.38 : w * 0.62 + r.nextDouble() * w * 0.38;
+    final y = h * (0.86 + r.nextDouble() * 0.12);
+    c.drawCircle(Offset(x, y), 2.6 + r.nextDouble() * 1.4, Paint()..color = petals[i % 4]);
+    c.drawCircle(Offset(x, y), 1.0, Paint()..color = const Color(0xFFFFB02E));
+  }
+  flatRock(c, Offset(w * 0.36, h * 0.945), w * 0.2, h * 0.045, seed: 12, color: const Color(0xFF93A29A), shade: const Color(0xFF788A82));
+  flatRock(c, Offset(w * 0.66, h * 0.925), w * 0.15, h * 0.035, seed: 14, color: const Color(0xFF93A29A), shade: const Color(0xFF788A82));
+  flatBush(c, Offset(w * 0.2, h * 0.9), w * 0.2, seed: 5, color: _crownDark, light: _crown);
 }
 
 // ---------------------------------------------------------------- foreground
 
-void _leaf(Canvas c, Offset base, double len, double angle, Color dark, Color light) {
+void _leaf(Canvas c, Offset base, double len, double angle, Color color, Color shade) {
   c
     ..save()
     ..translate(base.dx, base.dy)
     ..rotate(angle);
-  final w = len * 0.28;
+  final w = len * 0.26;
   final p = Path()
     ..moveTo(0, 0)
     ..cubicTo(-w * 1.3, -len * 0.25, -w * 1.1, -len * 0.75, 0, -len)
     ..cubicTo(w * 1.1, -len * 0.75, w * 1.3, -len * 0.25, 0, 0)
     ..close();
-  c.drawPath(p, linearPaint(Offset(-w, 0), Offset(w, -len * 0.5), [dark, mix(dark, light, 0.55)]));
-  // lit half + midrib
-  c.drawPath(
-    Path()
-      ..moveTo(0, 0)
-      ..cubicTo(w * 1.3, -len * 0.25, w * 1.1, -len * 0.75, 0, -len)
-      ..quadraticBezierTo(w * 0.2, -len * 0.5, 0, 0)
-      ..close(),
-    Paint()..color = light.withValues(alpha: 0.45),
-  );
-  c.drawLine(
-    Offset.zero,
-    Offset(0, -len * 0.92),
-    Paint()
-      ..color = light.withValues(alpha: 0.7)
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round,
-  );
+  c.drawPath(p, Paint()..color = color);
+  c
+    ..save()
+    ..clipPath(p)
+    ..drawRect(Rect.fromLTRB(0, -len, w * 2, 0), Paint()..color = shade)
+    ..restore();
   c.restore();
 }
 
 void _foreLeaves(Canvas c, Size s) {
   final w = s.width, h = s.height;
-  const dark = Color(0xFF0F4A34), light = Color(0xFF9EDB62);
   for (final side in [-1, 1]) {
-    final bx = side < 0 ? w * 0.0 : w * 1.0;
+    final bx = side < 0 ? 0.0 : w;
     for (var i = 0; i < 6; i++) {
       final a = (side < 0 ? 0.25 : -0.25) + side * (i - 2.5) * 0.28 + (side < 0 ? 0.15 : -0.15);
-      _leaf(c, Offset(bx + side * w * 0.02, h * 1.03), h * (0.2 + (i % 3) * 0.04), a, darken(dark, 0.02 * i), light);
+      _leaf(c, Offset(bx + side * w * 0.02, h * 1.03), h * (0.2 + (i % 3) * 0.04), a, Color.lerp(const Color(0xFF3FAE5E), const Color(0xFF74D072), (i % 3) / 2)!, const Color(0xFF2E9A58));
     }
   }
 }
@@ -338,11 +316,11 @@ void _foreLeaves(Canvas c, Size s) {
 // ---------------------------------------------------------------- live
 
 void _seeds(Canvas c, Size s, Clock k) {
-  paintParticles(c, s, k, const ParticleSpec(count: 38, seed: 3, colors: [Color(0xFFFFFFFF), Color(0xFFFFF3C2)], minSize: 0.9, maxSize: 2.0, flow: Offset(0.1, -0.22), cycles: 2, spread: 2, wander: 14, twinkle: 0.4, shape: ParticleShape.dot, region: Rect.fromLTRB(0.0, 0.2, 1.0, 0.98), opacity: 0.85));
+  paintParticles(c, s, k, const ParticleSpec(count: 36, seed: 3, colors: [Color(0xFFFFFFFF), Color(0xFFFFF3C2)], minSize: 1.0, maxSize: 2.2, flow: Offset(0.1, -0.22), cycles: 2, spread: 2, wander: 14, twinkle: 0.4, shape: ParticleShape.dot, region: Rect.fromLTRB(0.0, 0.2, 1.0, 0.98), opacity: 0.85));
 }
 
 void _spirits(Canvas c, Size s, Clock k) {
-  paintParticles(c, s, k, const ParticleSpec(count: 20, seed: 8, colors: [Color(0xFFFFF0A0), Color(0xFFC4FF9A)], minSize: 1.8, maxSize: 3.4, flow: Offset(0.02, -0.05), cycles: 1, spread: 1, wander: 26, twinkle: 0.7, twinkleCycles: 8, shape: ParticleShape.glow, region: Rect.fromLTRB(0.0, 0.4, 1.0, 0.98), haloScale: 4.4));
+  paintParticles(c, s, k, const ParticleSpec(count: 16, seed: 8, colors: [Color(0xFFFFF0A0), Color(0xFFC4FF9A)], minSize: 2.0, maxSize: 3.4, flow: Offset(0.02, -0.05), cycles: 1, spread: 1, wander: 26, twinkle: 0.7, twinkleCycles: 8, shape: ParticleShape.glow, region: Rect.fromLTRB(0.0, 0.4, 1.0, 0.98), haloScale: 2.6));
 }
 
 void _butterflies(Canvas c, Size s, Clock k) {
@@ -358,17 +336,9 @@ void _butterflies(Canvas c, Size s, Clock k) {
         ..save()
         ..translate(x, y)
         ..scale(sd * flap, 1);
-      c.drawOval(Rect.fromLTWH(0, -5, 7, 6), Paint()..color = col.withValues(alpha: 0.95));
-      c.drawOval(Rect.fromLTWH(0, 0, 5, 5), Paint()..color = col.withValues(alpha: 0.8));
+      c.drawOval(Rect.fromLTWH(0, -5, 7, 6), Paint()..color = col);
+      c.drawOval(Rect.fromLTWH(0, 0, 5, 5), Paint()..color = col.withValues(alpha: 0.85));
       c.restore();
     }
-  }
-}
-
-void _nearMist(Canvas c, Size s, Clock k) {
-  for (var i = 0; i < 2; i++) {
-    final w = s.width * 1.5;
-    final x = -w * 0.6 + k.saw(1, i / 2 + 0.2) * (s.width + w * 1.2);
-    softEllipse(c, Offset(x, s.height * (0.8 + i * 0.1)), w, s.height * 0.09, const Color(0xFFEFFFF4), 0.28);
   }
 }

@@ -47,7 +47,6 @@ class _SceneBackgroundState extends State<SceneBackground> with SingleTickerProv
     final spec = sceneFor(widget.world);
     return Stack(fit: StackFit.expand, children: [
       Positioned.fill(child: RepaintBoundary(child: SceneStack(spec: spec, anim: _c))),
-      const Positioned.fill(child: IgnorePointer(child: RepaintBoundary(child: CustomPaint(painter: _GrainPainter())))),
       // soft darkening so titles and buttons stay readable
       Positioned.fill(
         child: IgnorePointer(
@@ -89,7 +88,6 @@ Future<ui.Image> sceneThumbnail(String world, {double u = 0.12}) => _thumbs.putI
           l.still!(c, size);
         }
       }
-      paintGrain(c, size);
       return rec.endRecording().toImage(size.width.round(), size.height.round());
     });
 
@@ -259,16 +257,6 @@ class _ScrollPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScrollPainter old) => old.fn != fn || old.screen != screen;
-}
-
-class _GrainPainter extends CustomPainter {
-  const _GrainPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) => paintGrain(canvas, size);
-
-  @override
-  bool shouldRepaint(_GrainPainter old) => false;
 }
 
 class _LivePainter extends CustomPainter {
