@@ -359,3 +359,17 @@ void paintBirds(Canvas c, Size s, Clock k, {int count = 4, int seed = 5, double 
     paintBird(c, Offset(x, yy + bob), size * k0 * (0.7 + r.nextDouble() * 0.6), k.sine(30 + i * 3, ph), color);
   }
 }
+
+/// Strokes [path] as travelling dashes (lava flow, glints on a river, energy
+/// lines). [phase] is 0..1 (use `k.saw(n)`); dashes move along the path.
+void paintFlowDashes(Canvas c, Path path, Paint paint, {required double phase, double dash = 18, double gap = 30}) {
+  final period = dash + gap;
+  for (final m in path.computeMetrics()) {
+    var d = -(1 - phase) * period;
+    while (d < m.length) {
+      final a = math.max(d, 0.0), b = math.min(d + dash, m.length);
+      if (b > a) c.drawPath(m.extractPath(a, b), paint);
+      d += period;
+    }
+  }
+}

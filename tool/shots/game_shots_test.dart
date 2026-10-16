@@ -64,9 +64,10 @@ void main() {
         key: ck,
         child: Directionality(
           textDirection: TextDirection.ltr,
-          child: Center(child: SizedBox(width: 358, height: 150, child: ClipRRect(borderRadius: BorderRadius.circular(24), child: SceneArt(id)))),
+          child: Center(child: SizedBox(width: 170, height: 236, child: ClipRRect(borderRadius: BorderRadius.circular(24), child: SceneArt(id)))),
         ),
       ));
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
       await t.pump(const Duration(milliseconds: 100));
       await shot(ck, '${id}_card', 2.0);
     }

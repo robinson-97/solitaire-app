@@ -47,6 +47,15 @@ void main() {
     }
 
     await shot('home_w0');
+    await t.tap(find.text('Collection'));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.text('Worlds'));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 900)));
+    await t.pump(const Duration(milliseconds: 300));
+    await shot('collection_worlds');
+    await t.tap(find.text('Play'));
+    await t.pump(const Duration(milliseconds: 400));
     // swipe through worlds with the chevrons (if requested)
     for (var i = 0; i < _world; i++) {
       final next = find.byIcon(Icons.chevron_right_rounded);

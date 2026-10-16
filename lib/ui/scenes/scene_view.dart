@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'kit.dart';
 import 'registry.dart';
@@ -71,22 +72,64 @@ class _SceneBackgroundState extends State<SceneBackground> with SingleTickerProv
   }
 }
 
-/// A non-animated look at a world, cropped to fit a card.
-class SceneArt extends StatelessWidget {
-  const SceneArt(this.world, {super.key, this.u = 0.12});
+final Map<String, Future<ui.Image>> _thumbs = {};
+
+/// One still frame of a world as an image (drawn once, then cached).
+Future<ui.Image> sceneThumbnail(String world, {double u = 0.12}) => _thumbs.putIfAbsent('$world@$u', () {
+      final spec = sceneFor(world);
+      const size = Size(390, 844);
+      final rec = ui.PictureRecorder();
+      final c = Canvas(rec);
+      final clock = Clock(u);
+      for (final l in spec.layers) {
+        if (l.live != null) {
+          l.live!(c, size, clock);
+        } else {
+          l.still!(c, size);
+        }
+      }
+      return rec.endRecording().toImage(size.width.round(), size.height.round());
+    });
+
+/// A non-animated picture of a world for cards (rendered once and cached).
+class SceneArt extends StatefulWidget {
+  const SceneArt(this.world, {super.key, this.u = 0.12, this.delay = Duration.zero});
   final String world;
   final double u;
 
+  /// Staggers the first drawing of many cards so scrolling stays smooth.
+  final Duration delay;
+
+  @override
+  State<SceneArt> createState() => _SceneArtState();
+}
+
+class _SceneArtState extends State<SceneArt> {
+  ui.Image? _image;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(SceneArt old) {
+    super.didUpdateWidget(old);
+    if (old.world != widget.world || old.u != widget.u) _load();
+  }
+
+  Future<void> _load() async {
+    if (widget.delay > Duration.zero) await Future<void>.delayed(widget.delay);
+    final img = await sceneThumbnail(widget.world, u: widget.u);
+    if (mounted) setState(() => _image = img);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final spec = sceneFor(world);
-    return ClipRect(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        alignment: Alignment(0, spec.focusY),
-        child: SizedBox(width: 390, height: 844, child: SceneStack(spec: spec, anim: AlwaysStoppedAnimation(u))),
-      ),
-    );
+    final img = _image;
+    if (img == null) return const ColoredBox(color: Color(0xFF16204A));
+    return RawImage(image: img, fit: BoxFit.cover, alignment: Alignment(0, sceneFor(widget.world).focusY), filterQuality: FilterQuality.medium);
   }
 }
 

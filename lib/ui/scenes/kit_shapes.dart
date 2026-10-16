@@ -440,3 +440,14 @@ void paintCrystal(Canvas c, Offset base, double w, double h, {Color color = cons
     ..close();
   c.drawPath(facet, Paint()..color = darken(color, 0.18).withValues(alpha: 0.5));
 }
+
+/// Draws [draw] mirrored in a horizontal axis at [axisY] (water reflections);
+/// pair it with a translucent gradient drawn over the top for a nice fade.
+void mirrorVertical(Canvas c, double axisY, void Function() draw) {
+  c
+    ..save()
+    ..translate(0, 2 * axisY)
+    ..scale(1, -1);
+  draw();
+  c.restore();
+}

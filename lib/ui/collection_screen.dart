@@ -80,11 +80,8 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           final cards = switch (tab) {
             0 => const <Widget>[],
             1 => [for (final t in boardThemes) _boardCard(t, u)],
-            _ => [for (final wd in worlds) _worldCard(wd, u)],
+            _ => [for (var i = 0; i < worlds.length; i++) _worldCard(worlds[i], u, i)],
           };
-          if (tab == 2) {
-            return Column(children: [for (final c in cards) Padding(padding: const EdgeInsets.only(bottom: 12), child: c)]);
-          }
           return Wrap(spacing: 12, runSpacing: 12, children: [for (final c in cards) SizedBox(width: w, child: c)]);
         }),
       ],
@@ -205,37 +202,41 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     );
   }
 
-  Widget _worldCard(World w, Unlocks u) {
+  Widget _worldCard(World w, Unlocks u, int index) {
     final open = u.worldUnlocked(w);
     final prev = w.unlockedBy == null ? null : worldById(w.unlockedBy!);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        height: 150,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
-        child: Stack(fit: StackFit.expand, children: [
-          ColorFiltered(
-            colorFilter: open ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _grey,
-            child: SceneArt(w.id),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)]),
+    return AspectRatio(
+      aspectRatio: 0.72,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
+          child: Stack(fit: StackFit.expand, children: [
+            ColorFiltered(
+              colorFilter: open ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _grey,
+              child: SceneArt(w.id, delay: Duration(milliseconds: 90 * (index % 6))),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-              Row(children: [
-                Expanded(child: Text(w.name, style: displayFont.copyWith(fontSize: 20, fontWeight: FontWeight.w700))),
-                Icon(open ? Icons.check_circle_rounded : Icons.lock_rounded, color: open ? lantern : Colors.white70),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.25), Colors.transparent, Colors.black.withValues(alpha: 0.78)], stops: const [0.0, 0.4, 1.0]),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Icon(open ? Icons.check_circle_rounded : Icons.lock_rounded, size: 22, color: open ? lantern : Colors.white70),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
+                Text(w.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(open ? '${u.solvedIn(w)} / ${w.levels.length} cleared' : 'Clear every ${prev!.name} level',
+                    maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.82))),
               ]),
-              const SizedBox(height: 2),
-              Text(open ? '${u.solvedIn(w)} / ${w.levels.length} levels cleared' : 'Clear every ${prev!.name} level',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
-            ]),
-          ),
-        ]),
+            ),
+          ]),
+        ),
       ),
     );
   }
