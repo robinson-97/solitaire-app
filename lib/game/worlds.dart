@@ -2,16 +2,11 @@ import 'board_def.dart';
 import 'catalog_data.dart';
 import 'levels_data.dart';
 
-/// Built-in animated scenery, used until a world has its own illustration.
-enum WorldScene { forest, cavern, peak, desert, ocean, volcano, tundra, sky, stadium, neon, nebula }
-
 class World {
   const World({
     required this.id,
     required this.name,
     required this.tagline,
-    required this.scene,
-    required this.art,
     required this.levelPacks,
     required this.challenges,
     this.unlockedBy,
@@ -20,8 +15,6 @@ class World {
   final String id;
   final String name;
   final String tagline;
-  final WorldScene scene;
-  final String art; // assets/worlds/world_NN.jpg (optional)
   final List<String> levelPacks; // id prefixes in levels_data.dart
   final List<BoardDef> challenges; // optional boards, not needed to finish
   final String? unlockedBy; // world that must be completed first
@@ -41,8 +34,6 @@ final List<World> worlds = [
       id: worldCatalog[i].id,
       name: worldCatalog[i].name,
       tagline: worldCatalog[i].tagline,
-      scene: WorldScene.values.byName(worldCatalog[i].fallback),
-      art: worldCatalog[i].art,
       levelPacks: [for (final p in worldCatalog[i].packs) p.toLowerCase()],
       challenges: i == 0 ? [triangleBoard, classicBoard] : (i == 1 ? [frenchBoard] : const []),
       unlockedBy: i == 0 ? null : worldCatalog[i - 1].id,

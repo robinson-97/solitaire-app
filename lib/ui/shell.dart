@@ -45,7 +45,7 @@ class _ShellState extends State<Shell> {
               final shown = tab == 0 ? world : worlds.first;
               return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 700),
-                child: SceneBackground(key: ValueKey(shown.id), scene: shown.scene, art: shown.art),
+                child: SceneBackground(key: ValueKey(shown.id), world: shown.id),
               );
             },
           ),

@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'background.dart';
-import '../game/worlds.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -48,7 +47,7 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> with SingleTickerProv
     final last = page == _pages.length - 1;
     return Scaffold(
       body: SceneBackground(
-        scene: WorldScene.forest,
+        world: 'forest',
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
