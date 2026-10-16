@@ -130,7 +130,7 @@ class _PlayPageState extends State<PlayPage> {
               IconButton(onPressed: idx == 0 ? null : () => _go(-1), icon: const Icon(Icons.chevron_left_rounded, size: 32)),
               Expanded(
                 child: Column(children: [
-                  Text('WORLD ${idx + 1} OF ${worlds.length}', style: TextStyle(fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700, color: accent)),
+                  Text('STAGE ${idx + 1} OF ${worlds.length}', style: TextStyle(fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700, color: accent)),
                   const SizedBox(height: 2),
                   Text(w.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 25)),
                 ]),

@@ -89,7 +89,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
   }
 
   Widget _tabs() {
-    const labels = ['Pegs', 'Boards', 'Worlds'];
+    const labels = ['Pegs', 'Boards', 'Stages'];
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(

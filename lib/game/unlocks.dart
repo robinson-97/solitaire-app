@@ -136,7 +136,7 @@ class Unlocks {
     for (final w in worlds) {
       if (!worldUnlocked(w)) {
         final prev = worldById(w.unlockedBy!);
-        consider('${w.name} world', 'Clear every ${prev.name} level',
+        consider('${w.name} stage', 'Clear every ${prev.name} level',
             solvedIn(prev) / prev.levels.length);
       }
     }

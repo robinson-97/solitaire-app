@@ -1214,7 +1214,7 @@ class _ResultDialogState extends State<_ResultDialog> {
         );
       default:
         lead = const Icon(Icons.public_rounded, color: lantern, size: 32);
-        title = '${worldById(id).name} world';
+        title = '${worldById(id).name} stage';
     }
     return Padding(
       padding: const EdgeInsets.only(top: 8),
