@@ -384,7 +384,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final boardTheme = boardThemeById(u.boardUnlocked(widget.storage.boardTheme) ? widget.storage.boardTheme : 'midnight');
     return Scaffold(
       body: SceneBackground(
-        world: widget.storage.sceneryBackdrop ? worldOfBoard(widget.board.id).id : 'neon:${worldOfBoard(widget.board.id).id}',
+        world: worldOfBoard(widget.board.id).id,
         child: SafeArea(
           child: Column(children: [
             Padding(

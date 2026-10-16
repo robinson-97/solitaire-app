@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hopstone/ui/shaders.dart';
 import 'package:hopstone/game/catalog_data.dart';
 import 'package:hopstone/game/worlds.dart';
 import 'package:hopstone/storage.dart';
@@ -40,7 +39,6 @@ void main() {
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
     SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': true, 'board_theme': _board, 'peg_theme': _peg});
     final storage = await Storage.open();
-    await t.runAsync(Gfx.init);
     final ids = _scenes == 'all' ? [for (final w in worldCatalog) w.id] : _scenes.split(',');
 
     Future<void> shot(GlobalKey key, String name, double ratio) async {

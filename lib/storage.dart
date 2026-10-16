@@ -44,8 +44,6 @@ class Storage {
   Future<void> setHaptics(bool v) => _prefs.setBool('haptics', v);
 
   /// false = sleek neon-night backdrop in levels (default), true = world scenery.
-  bool get sceneryBackdrop => _prefs.getBool('scenery_backdrop') ?? false;
-  Future<void> setSceneryBackdrop(bool v) => _prefs.setBool('scenery_backdrop', v);
 
   String get pegTheme => _prefs.getString('peg_theme') ?? 'acorn';
   Future<void> setPegTheme(String id) => _prefs.setString('peg_theme', id);
