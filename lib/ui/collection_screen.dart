@@ -93,9 +93,10 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
+        color: cocoa.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: cocoaEdge, width: 1.6),
+        boxShadow: const [BoxShadow(color: cocoaDeep, offset: Offset(0, 3))],
       ),
       child: Row(children: [
         for (var i = 0; i < labels.length; i++)

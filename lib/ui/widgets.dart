@@ -22,7 +22,7 @@ Route<T> softRoute<T>(Widget page) => PageRouteBuilder<T>(
       },
     );
 
-/// Frosted dark panel used across menus.
+/// Cocoa-brown wooden panel used across menus.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -46,22 +46,10 @@ class GlassCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0x9926307A), Color(0xCC0A1030)],
-            ),
-            border: Border.all(
-              color: glow?.withValues(alpha: 0.7) ?? Colors.white.withValues(alpha: 0.14),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: glow?.withValues(alpha: 0.28) ?? Colors.black.withValues(alpha: 0.4),
-                blurRadius: 22,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: cocoa.withValues(alpha: 0.94),
+            border: Border.all(color: glow ?? cocoaEdge, width: glow != null ? 2.2 : 1.6),
+            // hard, flat bottom edge instead of a blurred shadow
+            boxShadow: const [BoxShadow(color: cocoaDeep, offset: Offset(0, 4))],
           ),
           child: Material(
             color: Colors.transparent,
@@ -95,22 +83,16 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    final fg = primary ? const Color(0xFF2B1604) : parchment;
+    final fg = primary ? const Color(0xFF3A2210) : parchment;
     return AnimatedOpacity(
       opacity: enabled ? 1 : 0.4,
       duration: const Duration(milliseconds: 150),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(40),
-          gradient: primary
-              ? const LinearGradient(colors: [Color(0xFFFFCB78), Color(0xFFE58E22)])
-              : danger
-                  ? const LinearGradient(colors: [Color(0xFFB4372E), Color(0xFF7E1F1A)])
-                  : const LinearGradient(colors: [Color(0x33FFFFFF), Color(0x14FFFFFF)]),
-          border: primary ? null : Border.all(color: Colors.white.withValues(alpha: 0.2)),
-          boxShadow: primary
-              ? [BoxShadow(color: lantern.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 6))]
-              : null,
+          color: primary ? lantern : (danger ? const Color(0xFFC4473A) : cocoa.withValues(alpha: 0.92)),
+          border: primary ? null : Border.all(color: danger ? const Color(0xFFE8786A) : cocoaEdge, width: 1.6),
+          boxShadow: [BoxShadow(color: primary ? const Color(0xFFB9701C) : (danger ? const Color(0xFF7E2A22) : cocoaDeep), offset: const Offset(0, 4))],
         ),
         child: Material(
           color: Colors.transparent,
@@ -149,15 +131,11 @@ class ProgressBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(height),
         child: Container(
           height: height,
-          color: Colors.white.withValues(alpha: 0.12),
+          color: cocoaDeep.withValues(alpha: 0.7),
           alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
             widthFactor: value.clamp(0.0, 1.0),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color.withValues(alpha: 0.7), color]),
-              ),
-            ),
+            child: Container(color: color),
           ),
         ),
       );
@@ -172,9 +150,9 @@ class Chip2 extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.16),
+          color: cocoa.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.5)),
+          border: Border.all(color: color.withValues(alpha: 0.8), width: 1.4),
         ),
         child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color, letterSpacing: 0.4)),
       );
@@ -222,12 +200,9 @@ class _PreviewPainter extends CustomPainter {
     }
     final b = wood.getBounds();
     final colors = theme?.body ?? const [Color(0xFFC48A52), Color(0xFF9A6234), Color(0xFF6B4423)];
-    canvas.drawPath(wood.shift(const Offset(0, 1.5)), Paint()..color = Colors.black.withValues(alpha: 0.5));
-    canvas.drawPath(
-      wood,
-      Paint()
-        ..shader = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors).createShader(b),
-    );
+    canvas.drawPath(wood.shift(const Offset(0, 2)), Paint()..color = theme?.side ?? const Color(0xFF4A2D14));
+    canvas.drawPath(wood, Paint()..color = colors[1]);
+    assert(b.isFinite);
     for (final h in def.holes) {
       final c = geo.centerOf(h);
       canvas.drawCircle(c, cell * 0.3, Paint()..color = theme?.holeOuter ?? holeColor);
@@ -259,9 +234,9 @@ class GlassNavBar extends StatelessWidget {
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(34),
-          gradient: const LinearGradient(colors: [Color(0xEE1B2160), Color(0xEE0B1033)]),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 24, offset: const Offset(0, 8))],
+          color: cocoa.withValues(alpha: 0.96),
+          border: Border.all(color: cocoaEdge, width: 1.6),
+          boxShadow: const [BoxShadow(color: cocoaDeep, offset: Offset(0, 4))],
         ),
         child: Row(children: [
           for (var i = 0; i < _items.length; i++)
@@ -275,7 +250,7 @@ class GlassNavBar extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
-                    color: i == index ? lantern.withValues(alpha: 0.18) : Colors.transparent,
+                    color: i == index ? lantern.withValues(alpha: 0.22) : Colors.transparent,
                   ),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Icon(_items[i].$1, size: 24, color: i == index ? lantern : Colors.white60),

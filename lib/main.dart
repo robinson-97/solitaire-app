@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'sfx.dart';
 import 'storage.dart';
-import 'ui/shaders.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
 
@@ -12,7 +11,6 @@ Future<void> main() async {
   final storage = await Storage.open();
   Sfx.enabled = storage.sound;
   await Sfx.init();
-  await Gfx.init();
   runApp(HopstoneApp(storage: storage));
 }
 

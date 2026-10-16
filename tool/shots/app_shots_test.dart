@@ -23,7 +23,7 @@ Future<void> _font(String family, String path) async {
 
 void main() {
   testWidgets('app screens', (t) async {
-    await _font('Poppins', 'assets/fonts/Poppins-Regular.ttf');
+    await _font('Nunito', 'assets/fonts/Nunito-Regular.ttf');
     await _font('MaterialIcons', '/opt/sdk/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
     Directory(_out).createSync(recursive: true);
     t.view.physicalSize = const Size(1170, 2532);

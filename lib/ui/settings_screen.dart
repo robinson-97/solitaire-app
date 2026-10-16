@@ -19,7 +19,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF14183A),
+        backgroundColor: cocoa,
         title: const Text('Reset all progress?'),
         content: const Text('Scores, cleared levels and unlocks on this device will be erased.'),
         actions: [

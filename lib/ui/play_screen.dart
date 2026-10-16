@@ -71,28 +71,38 @@ class _PlayPageState extends State<PlayPage> {
         ),
         const SizedBox(height: 10),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(children: [
-            IconButton(onPressed: idx == 0 ? null : () => _go(-1), icon: const Icon(Icons.chevron_left_rounded, size: 32)),
-            Expanded(
-              child: Column(children: [
-                Text('WORLD ${idx + 1}', style: TextStyle(fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.65))),
-                Text(w.name, style: displayFont.copyWith(fontSize: 28, fontWeight: FontWeight.w700, shadows: [
-                  Shadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10),
-                ])),
-              ]),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+            decoration: BoxDecoration(
+              color: cocoa.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: cocoaEdge, width: 1.6),
+              boxShadow: const [BoxShadow(color: cocoaDeep, offset: Offset(0, 4))],
             ),
-            IconButton(onPressed: idx == worlds.length - 1 ? null : () => _go(1), icon: const Icon(Icons.chevron_right_rounded, size: 32)),
-          ]),
+            child: Column(children: [
+              Row(children: [
+                IconButton(onPressed: idx == 0 ? null : () => _go(-1), icon: const Icon(Icons.chevron_left_rounded, size: 32)),
+                Expanded(
+                  child: Column(children: [
+                    Text('WORLD ${idx + 1}', style: TextStyle(fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w700, color: lantern.withValues(alpha: 0.95))),
+                    Text(w.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 26)),
+                  ]),
+                ),
+                IconButton(onPressed: idx == worlds.length - 1 ? null : () => _go(1), icon: const Icon(Icons.chevron_right_rounded, size: 32)),
+              ]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 2, 18, 0),
+                child: Row(children: [
+                  Expanded(child: ProgressBar(open ? cleared / w.levels.length : 0, height: 7)),
+                  const SizedBox(width: 12),
+                  Text(open ? '$cleared / ${w.levels.length}' : 'Locked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ]),
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(26, 4, 26, 12),
-          child: Row(children: [
-            Expanded(child: ProgressBar(open ? cleared / w.levels.length : 0, height: 6)),
-            const SizedBox(width: 12),
-            Text(open ? '$cleared / ${w.levels.length}' : 'Locked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          ]),
-        ),
+        const SizedBox(height: 12),
         Expanded(
           child: open
               ? ListView(
@@ -166,7 +176,7 @@ class _PlayPageState extends State<PlayPage> {
       glow: current ? lantern : null,
       dim: false,
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        BoardPreview(b, size: 38),
+        BoardPreview(b, size: 34),
         const SizedBox(height: 3),
         Text('$n', style: displayFont.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
         const SizedBox(height: 1),
