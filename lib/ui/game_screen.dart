@@ -381,7 +381,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final still = reduceMotion(context);
     final u = Unlocks(widget.storage);
     final pegTheme = pegThemeById(u.pegUnlocked(widget.storage.pegTheme) ? widget.storage.pegTheme : 'acorn');
-    final boardTheme = boardThemeById(u.boardUnlocked(widget.storage.boardTheme) ? widget.storage.boardTheme : 'oak');
+    final boardTheme = boardThemeById(u.boardUnlocked(widget.storage.boardTheme) ? widget.storage.boardTheme : 'midnight');
     return Scaffold(
       body: SceneBackground(
         world: widget.storage.sceneryBackdrop ? worldOfBoard(widget.board.id).id : 'neon:${worldOfBoard(widget.board.id).id}',

@@ -49,7 +49,7 @@ class Storage {
 
   String get pegTheme => _prefs.getString('peg_theme') ?? 'acorn';
   Future<void> setPegTheme(String id) => _prefs.setString('peg_theme', id);
-  String get boardTheme => _prefs.getString('board_theme') ?? 'oak';
+  String get boardTheme => _prefs.getString('board_theme') ?? 'midnight';
   Future<void> setBoardTheme(String id) => _prefs.setString('board_theme', id);
 
   Future<void> resetAll() async {
@@ -59,6 +59,6 @@ class Storage {
       }
     }
     await setPegTheme('acorn');
-    await setBoardTheme('oak');
+    await setBoardTheme('midnight');
   }
 }

@@ -112,7 +112,7 @@ class Unlocks {
   Set<String> snapshot() => {
         for (final id in pegRules.keys.followedBy(['acorn']))
           if (pegUnlocked(id)) 'peg:$id',
-        for (final id in boardRules.keys.followedBy(['oak']))
+        for (final id in boardRules.keys.followedBy(['oak', 'midnight']))
           if (boardUnlocked(id)) 'board:$id',
         for (final w in worlds)
           if (worldUnlocked(w)) 'world:${w.id}',

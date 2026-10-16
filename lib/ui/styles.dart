@@ -176,6 +176,10 @@ class BoardTheme {
 }
 
 const boardThemes = [
+  BoardTheme('midnight', 'Midnight Grid', BoardKind.neon,
+      [Color(0xFF1B2358), Color(0xFF121846), Color(0xFF0A0E2A)],
+      Color(0xFF04061A), Color(0xFF3A52FF), Color(0xFF0C1030), Color(0xFF03040F),
+      Color(0xFF2B1F7A), Color(0xFF35F0FF)),
   BoardTheme('oak', 'Old Oak', BoardKind.wood,
       [Color(0xFFC48A52), Color(0xFF9A6234), Color(0xFF6B4423)],
       Color(0xFF4A2D14), Color(0xFF3B200C), Color(0xFF4A2A14), Color(0xFF1B0D05),
