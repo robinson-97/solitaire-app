@@ -22,7 +22,7 @@ class _HowToPlayScreenState extends State<HowToPlayScreen> with SingleTickerProv
   static const _pages = [
     ('Jump to clear', 'Tap a peg, then tap an empty hole two steps away. The peg hops over its neighbour.'),
     ('Hopped pegs vanish', 'The peg you jump over disappears. Keep jumping and the board slowly empties.'),
-    ('Reach the goal', 'Every level shows how many pegs you may leave. Leave just one for a perfect finish. Undo is free, but a clean run earns more stars.'),
+    ('Reach the goal', 'Every level shows how many pegs you may leave. Leave just one for a perfect finish. Every undo costs 30 points, so think before you jump.'),
   ];
 
   @override
