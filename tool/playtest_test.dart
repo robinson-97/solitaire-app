@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_use_of_visible_for_testing_member
 // ignore_for_file: avoid_print
 // Plays real levels through the real UI by tapping holes, like a tester:
 //   flutter test tool/playtest_test.dart
@@ -60,14 +61,11 @@ void main() {
       await t.pumpWidget(MaterialApp(theme: buildTheme(), home: GameScreen(board: level, storage: s, nextBoard: next)));
       await t.pump(const Duration(seconds: 1));
       final sol = solve(level)!;
-      var n = 0;
       for (final (from, _, to) in sol) {
         await t.tapAt(await _hole(t, level, from));
         await t.pump(const Duration(milliseconds: 150));
         await t.tapAt(await _hole(t, level, to));
         await t.pump(const Duration(milliseconds: 1000));
-        n++;
-        expect(tester(t), isNotNull);
       }
       await t.pump(const Duration(seconds: 3));
       expect(find.text('Next'), findsOneWidget, reason: 'win dialog with Next');
@@ -115,5 +113,3 @@ void main() {
     expect(find.text('1'), findsWidgets);
   });
 }
-
-dynamic tester(WidgetTester t) => t;
