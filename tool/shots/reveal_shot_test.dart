@@ -26,7 +26,7 @@ void main() {
       key: key,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(body: DrawReveal(theme: pegThemeById(_peg), rarity: r, color: rarityColor(r), onEquip: () {}, onClose: () {})),
+        home: Scaffold(body: DrawReveal(theme: pegThemeById(_peg), rarity: r, color: rarityColor(r), left: 12, onEquip: () {}, onClose: () {})),
       ),
     ));
     await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 3)));

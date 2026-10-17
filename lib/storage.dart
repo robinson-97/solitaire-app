@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'game/board_def.dart';
@@ -7,6 +8,9 @@ import 'game/rewards.dart';
 class Storage {
   Storage._(this._prefs);
   final SharedPreferences _prefs;
+
+  /// Bumped whenever points change, so badges elsewhere can refresh.
+  static final ValueNotifier<int> changed = ValueNotifier(0);
 
   static Future<Storage> open() async =>
       Storage._(await SharedPreferences.getInstance());
@@ -30,8 +34,10 @@ class Storage {
   Future<void> markSolved(String boardId) => _prefs.setBool('solved_$boardId', true);
 
   int get totalPoints => _prefs.getInt('total_points') ?? 0;
-  Future<void> addPoints(int n) =>
-      _prefs.setInt('total_points', totalPoints + n);
+  Future<void> addPoints(int n) async {
+    await _prefs.setInt('total_points', totalPoints + n);
+    changed.value++;
+  }
 
   /// Stars of this level that have already been paid out.
   int paidStars(String boardId) => _prefs.getInt('paid_$boardId') ?? 0;
@@ -68,7 +74,10 @@ class Storage {
 
   /// Points available to spend on mystery pegs.
   int get points => totalPoints - spentPoints;
-  Future<void> spendPoints(int n) => _prefs.setInt('spent_points', spentPoints + n);
+  Future<void> spendPoints(int n) async {
+    await _prefs.setInt('spent_points', spentPoints + n);
+    changed.value++;
+  }
 
   Set<String> get ownedPegs => (_prefs.getStringList('owned_pegs') ?? const <String>[]).toSet();
   Future<void> addOwnedPeg(String id) => _prefs.setStringList('owned_pegs', {...ownedPegs, id}.toList());

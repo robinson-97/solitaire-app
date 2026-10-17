@@ -25,10 +25,13 @@ Color _rarityColor(Rarity r) => switch (r) {
 /// the marker, slows down and stops on the one you won. Pegs are pre-rendered
 /// to pictures once, so spinning only draws images and stays smooth.
 class DrawReveal extends StatefulWidget {
-  const DrawReveal({super.key, required this.theme, required this.rarity, required this.color, required this.onEquip, required this.onClose});
+  const DrawReveal({super.key, required this.theme, required this.rarity, required this.color, required this.left, required this.onEquip, required this.onClose});
   final PegTheme theme;
   final Rarity rarity;
   final Color color;
+
+  /// Pegs still to win after this one.
+  final int left;
   final VoidCallback onEquip;
   final VoidCallback onClose;
 
@@ -180,6 +183,8 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                               Transform.scale(scale: 0.3 + 0.7 * pop, child: SizedBox(width: 96, height: 96, child: PegView(theme: widget.theme, glow: _glow.value))),
                               const SizedBox(height: 12),
                               Text(widget.theme.name, style: displayFont.copyWith(fontSize: 26, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 4),
+                              Text(widget.left == 0 ? 'Collection complete!' : '${widget.left} more to win', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65))),
                             ]),
                           )
                         : const SizedBox.shrink(),

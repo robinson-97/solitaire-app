@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../game/board_def.dart';
+import '../game/rewards.dart';
 import '../game/unlocks.dart';
 import '../game/worlds.dart';
 import '../storage.dart';
@@ -48,6 +49,70 @@ class _PlayPageState extends State<PlayPage> {
   Future<void> _play(BoardDef b) async {
     await Navigator.of(context).push(softRoute(GameScreen(board: b, storage: widget.storage, nextBoard: nextLevel(b))));
     if (mounted) setState(() {});
+  }
+
+  /// Today's puzzle: the same level for everyone on the same day, picked from
+  /// the stages the player has already opened.
+  BoardDef _challengeLevel(Unlocks u) {
+    final pool = [for (final w in worlds) if (u.worldUnlocked(w)) ...w.levels];
+    final day = DateTime.now().difference(DateTime(2024)).inDays;
+    return pool[(day * 7919) % pool.length];
+  }
+
+  Future<void> _claimGift() async {
+    final s = widget.storage;
+    final streak = s.lastGift == yesterdayKey() ? s.giftStreak + 1 : 1;
+    await s.claimGift(todayKey(), streak);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('+${dailyGift(streak)} points - day $streak in a row!')));
+    setState(() {});
+  }
+
+  Widget _daily(Unlocks u, Color accent) {
+    final s = widget.storage;
+    final today = todayKey();
+    final giftReady = s.lastGift != today;
+    final nextStreak = s.lastGift == yesterdayKey() ? s.giftStreak + 1 : 1;
+    final challenge = _challengeLevel(u);
+    final done = s.lastChallenge == today;
+    Widget card({required IconData icon, required String title, required String sub, required bool ready, required VoidCallback? onTap}) => Expanded(
+          child: GlassCard(
+            onTap: onTap,
+            glow: ready ? accent.withValues(alpha: 0.5) : null,
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: Row(children: [
+              Icon(icon, color: ready ? accent : Colors.white38, size: 26),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(sub, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, height: 1.25, color: Colors.white.withValues(alpha: 0.7))),
+                ]),
+              ),
+            ]),
+          ),
+        );
+    return Row(children: [
+      card(
+        icon: Icons.card_giftcard_rounded,
+        title: 'Daily gift',
+        sub: giftReady ? 'Tap: +${dailyGift(nextStreak)} points (day $nextStreak)' : 'Back tomorrow',
+        ready: giftReady,
+        onTap: giftReady ? _claimGift : null,
+      ),
+      const SizedBox(width: 10),
+      card(
+        icon: done ? Icons.check_circle_rounded : Icons.bolt_rounded,
+        title: "Today's puzzle",
+        sub: done ? 'Done - new one tomorrow' : '${challenge.name}: +$dailyChallengeBonus bonus',
+        ready: !done,
+        onTap: () async {
+          await Navigator.of(context).push(softRoute(GameScreen(board: challenge, storage: widget.storage, challenge: true)));
+          if (mounted) setState(() {});
+        },
+      ),
+    ]);
   }
 
   Color _accent(World w) => neonPalette[w.id]?.$1 ?? lantern;
@@ -121,7 +186,9 @@ class _PlayPageState extends State<PlayPage> {
           const SizedBox(width: 6),
           Text('${widget.storage.points}', style: const TextStyle(fontWeight: FontWeight.w700)),
         ]),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        _daily(u, accent),
+        const SizedBox(height: 14),
         GlassCard(
           glow: accent.withValues(alpha: 0.55),
           padding: const EdgeInsets.fromLTRB(6, 10, 6, 14),
@@ -142,7 +209,7 @@ class _PlayPageState extends State<PlayPage> {
               child: Row(children: [
                 Expanded(child: ProgressBar(open ? cleared / w.levels.length : 0, color: accent, height: 6)),
                 const SizedBox(width: 12),
-                Text(open ? '$cleared / ${w.levels.length}' : 'Locked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                Text(open ? '$cleared / ${w.levels.length}  ·  ${u.starsIn(w)} \u2605' : 'Locked', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               ]),
             ),
           ]),

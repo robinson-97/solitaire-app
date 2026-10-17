@@ -69,6 +69,7 @@ void main() {
     await shot('t5_settings');
     await t.tap(find.text('Play'));
     await t.pump(const Duration(milliseconds: 500));
+    await shot('t6_home_daily');
     await t.tap(find.text('All levels'));
     await t.pump(const Duration(milliseconds: 800));
     await shot('t6_all_levels');
@@ -81,8 +82,6 @@ void main() {
     t.view.physicalSize = const Size(1080, 2340);
     t.view.devicePixelRatio = 3;
     addTearDown(t.view.reset);
-    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
     SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': false});
     final s = await Storage.open();
     final key = GlobalKey();
@@ -111,7 +110,11 @@ void main() {
     await t.tapAt(await hole(sol.first.$3));
     await t.pump(const Duration(milliseconds: 900));
     await shot('t7_mid_game');
-    await t.tap(find.textContaining('Undo  -30'));
+    await t.tap(find.textContaining('Hint'));
+    await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 2)));
+    await t.pump(const Duration(milliseconds: 500));
+    await shot('t7b_hint');
+    await t.tap(find.textContaining('Undo -30'));
     await t.pump(const Duration(milliseconds: 900));
     for (final (f, _, to) in sol) {
       await t.tapAt(await hole(f));

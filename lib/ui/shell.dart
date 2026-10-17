@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../game/peg_draw.dart';
+import '../game/unlocks.dart';
 import '../game/worlds.dart';
 import '../storage.dart';
 import 'background.dart';
@@ -7,6 +9,7 @@ import 'settings_screen.dart';
 import 'widgets.dart';
 import 'how_to_play.dart';
 import 'play_screen.dart';
+import 'styles.dart';
 
 /// Root screen: animated scenery plus the three main tabs.
 class Shell extends StatefulWidget {
@@ -53,7 +56,14 @@ class _ShellState extends State<Shell> {
           bottom: 0,
           child: SafeArea(
             top: false,
-            child: GlassNavBar(index: tab, onChanged: (i) => setState(() => tab = i)),
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage.changed,
+              builder: (_, _, _) {
+                final st = widget.storage;
+                final canDraw = st.points >= drawCost && pegThemes.any((t) => !Unlocks(st).pegUnlocked(t.id));
+                return GlassNavBar(index: tab, onChanged: (i) => setState(() => tab = i), badges: {if (canDraw) 1});
+              },
+            ),
           ),
         ),
       ]),

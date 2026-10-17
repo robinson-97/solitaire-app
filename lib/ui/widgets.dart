@@ -218,8 +218,11 @@ class _PreviewPainter extends CustomPainter {
 
 /// Floating bottom navigation.
 class GlassNavBar extends StatelessWidget {
-  const GlassNavBar({super.key, required this.index, required this.onChanged});
+  const GlassNavBar({super.key, required this.index, required this.onChanged, this.badges = const {}});
   final int index;
+
+  /// Tab indexes that show a little "something new" dot.
+  final Set<int> badges;
   final ValueChanged<int> onChanged;
 
   static const _items = [
@@ -253,7 +256,19 @@ class GlassNavBar extends StatelessWidget {
                     color: i == index ? lantern.withValues(alpha: 0.22) : Colors.transparent,
                   ),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(_items[i].$1, size: 24, color: i == index ? lantern : Colors.white60),
+                    Stack(clipBehavior: Clip.none, children: [
+                      Icon(_items[i].$1, size: 24, color: i == index ? lantern : Colors.white60),
+                      if (badges.contains(i))
+                        Positioned(
+                          right: -3,
+                          top: -2,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(color: const Color(0xFFFF5C8A), shape: BoxShape.circle, border: Border.all(color: cocoa, width: 1.5)),
+                          ),
+                        ),
+                    ]),
                     const SizedBox(height: 2),
                     Text(_items[i].$2,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: i == index ? lantern : Colors.white60)),

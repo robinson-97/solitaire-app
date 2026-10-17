@@ -64,6 +64,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           final w = (box.maxWidth - 12) / 2;
           if (tab == 0) {
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (!widget.storage.seenCollectionTip) ...[_tip(), const SizedBox(height: 12)],
               _drawPanel(),
               const SizedBox(height: 18),
               for (final r in Rarity.values) ...[
@@ -133,6 +134,25 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
   Widget _equipButton(bool equipped, VoidCallback onTap) => equipped
       ? const PillButton(label: 'Equipped', icon: Icons.check_rounded, compact: true)
       : PillButton(label: 'Equip', primary: true, compact: true, onTap: onTap);
+
+  Widget _tip() => GlassCard(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+        child: Row(children: [
+          const Icon(Icons.lightbulb_outline_rounded, color: lantern),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text('Tip: earn points by clearing levels with more stars, then spend them on a mystery peg. Every draw gives a peg you do not have yet.',
+                style: TextStyle(fontSize: 12.5, height: 1.35)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await widget.storage.setSeenCollectionTip();
+              setState(() {});
+            },
+            child: const Text('Got it'),
+          ),
+        ]),
+      );
 
   Widget _rarityHeader(Rarity r) {
     final all = pegThemes.where((t) => rarityOf(t.id) == r).toList();
@@ -214,6 +234,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
       pageBuilder: (ctx, _, _) => DrawReveal(
         theme: t,
         rarity: r,
+        left: pegThemes.where((p) => !Unlocks(s).pegUnlocked(p.id)).length,
         color: rarityColor(r),
         onEquip: () async {
           await s.setPegTheme(id);
