@@ -158,7 +158,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   _Hop? hop;
 
   late final AnimationController _hopC =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 640), value: 1);
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 760), value: 1);
   late final AnimationController _landC =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 950));
   Pos? landAt;
@@ -479,26 +479,33 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool get _hopping => hop != null && _hopC.value < 1;
 
-  static const _arcEnd = 0.78;
+  static const _crouchEnd = 0.12;
+  static const _arcEnd = 0.7;
 
   /// Where a hopping peg is at animation time [t]: how far along the ground
-  /// (0..1), height above the board, and squash & stretch.
+  /// (0..1), height above the board, and squash & stretch. Crouch, spring up,
+  /// float over the arc, land with a squash and settle with a damped bounce.
   ({double move, double lift, double sx, double sy}) _pose(double t, double cell) {
+    if (t < _crouchEnd) {
+      final u = t / _crouchEnd;
+      final sy = 1 - 0.22 * Curves.easeOut.transform(u);
+      return (move: 0.0, lift: 0.0, sx: 1 / sy, sy: sy);
+    }
     if (t < _arcEnd) {
-      final u = t / _arcEnd;
-      final crouch = u < 0.14 ? 0.12 * (1 - u / 0.14) : 0.0;
-      final sy = 1 - crouch + 0.14 * sin(pi * u);
+      final u = (t - _crouchEnd) / (_arcEnd - _crouchEnd);
+      final c = cos(pi * u);
+      final sy = 1 + 0.24 * c * c * (u < 0.5 ? 1 : 0.55);
       return (
-        move: Curves.easeInOut.transform(u),
-        lift: 4 * u * (1 - u) * cell * 1.25,
+        move: 0.45 * u + 0.55 * Curves.easeInOutSine.transform(u),
+        lift: 4 * u * (1 - u) * cell * 1.7,
         sx: 1 / sy,
         sy: sy,
       );
     }
     final v = (t - _arcEnd) / (1 - _arcEnd);
-    final squash = v < 0.4 ? 0.2 * sin(pi * v / 0.4) : 0.0;
-    final bounce = v < 0.4 ? 0.0 : sin(pi * (v - 0.4) / 0.6) * cell * 0.18;
-    final sy = 1 - squash;
+    final damp = exp(-4.2 * v);
+    final sy = 1 - 0.28 * damp * cos(2 * pi * 1.4 * v);
+    final bounce = cell * 0.2 * damp * sin(2 * pi * 1.1 * v).abs() * (v < 0.08 ? v / 0.08 : 1);
     return (move: 1.0, lift: bounce, sx: 1 / sy, sy: sy);
   }
 
@@ -523,15 +530,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final t = _hopC.value;
     final out = <(Offset, double, double)>[];
     if (t >= _arcEnd) return out;
-    for (var k = 1; k <= 7; k++) {
-      final tt = t - k * 0.028;
-      if (tt <= 0) continue;
+    for (var k = 1; k <= 9; k++) {
+      final tt = t - k * 0.026;
+      if (tt <= _crouchEnd) continue;
       final pose = _pose(tt, tb.cell);
       final flat = Offset.lerp(tb.flat.centerOf(h.from), tb.flat.centerOf(h.to), pose.move)!;
       final d = tb.pegSize(tb.scaleAtFlat(flat));
       final pos = tb.project(flat) - Offset(0, d * 0.32 + pose.lift);
-      final f = 1 - k / 8;
-      out.add((pos, d * 0.3 * f, 0.9 * f));
+      final f = 1 - k / 10;
+      out.add((pos, d * 0.26 * f, 0.9 * f));
     }
     return out;
   }
@@ -688,9 +695,22 @@ class _TrailPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var i = 0; i < trail.length; i++) {
+    // a soft comet tail first (tapering, fading), then the theme's particles
+    for (var i = trail.length - 1; i > 0; i--) {
+      final (a, ra, aa) = trail[i - 1];
+      final (b, _, _) = trail[i];
+      canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = color.withValues(alpha: aa * 0.35)
+          ..strokeWidth = ra * 1.6
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+    for (var i = 0; i < trail.length; i += 2) {
       final (pos, r, a) = trail[i];
-      drawParticle(canvas, kind, pos + Offset(0, -i * 1.5), r, a, color, i * 0.9);
+      drawParticle(canvas, kind, pos + Offset(sin(i * 1.7) * r, -i * 1.2), r, a, color, i * 0.9);
     }
   }
 

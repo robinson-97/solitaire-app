@@ -7,6 +7,7 @@ import '../game/unlocks.dart';
 import '../game/worlds.dart';
 import '../storage.dart';
 import 'background.dart';
+import 'draw_reveal.dart';
 import 'peg_view.dart';
 import 'styles.dart';
 import 'theme.dart';
@@ -201,37 +202,26 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     if (id == null) return;
     if (!s.unlockAll) await s.spendPoints(drawCost);
     await s.addOwnedPeg(id);
-    Sfx.play('unlock');
+    Future<void>.delayed(const Duration(milliseconds: 1500), () => Sfx.play('unlock'));
     if (!mounted) return;
     setState(() {});
     final t = pegThemeById(id);
     final r = rarityOf(id);
-    await showDialog<void>(
+    await showGeneralDialog<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: cocoa,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: rarityColor(r), width: 2)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(r.label.toUpperCase(), style: TextStyle(fontSize: 13, letterSpacing: 3, fontWeight: FontWeight.w800, color: rarityColor(r))),
-            const SizedBox(height: 18),
-            AnimatedBuilder(animation: _glow, builder: (_, _) => SizedBox(width: 130, height: 130, child: PegView(theme: t, glow: _glow.value))),
-            const SizedBox(height: 18),
-            Text(t.name, style: displayFont.copyWith(fontSize: 24)),
-            const SizedBox(height: 22),
-            PillButton(
-              label: 'Equip',
-              primary: true,
-              onTap: () async {
-                await s.setPegTheme(id);
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-            ),
-            const SizedBox(height: 10),
-            PillButton(label: 'Nice!', onTap: () => Navigator.pop(ctx)),
-          ]),
-        ),
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 250),
+      transitionBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+      pageBuilder: (ctx, _, _) => DrawReveal(
+        theme: t,
+        rarity: r,
+        color: rarityColor(r),
+        onEquip: () async {
+          await s.setPegTheme(id);
+          if (ctx.mounted) Navigator.pop(ctx);
+        },
+        onClose: () => Navigator.pop(ctx),
       ),
     );
     if (mounted) setState(() {});
