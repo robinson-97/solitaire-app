@@ -36,6 +36,9 @@ void _text(Canvas canvas, String t, Offset center, double size, Color color) {
   tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
 }
 
+/// Paints one peg into any canvas (used to pre-render still pictures of pegs).
+void paintPeg(Canvas canvas, Size size, PegTheme theme, double glow) => _PegPainter(theme, glow, false).paint(canvas, size);
+
 class _PegPainter extends CustomPainter {
   _PegPainter(this.theme, this.glow, this.selected);
   final PegTheme theme;

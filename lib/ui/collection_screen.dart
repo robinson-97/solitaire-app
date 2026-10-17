@@ -202,9 +202,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     if (id == null) return;
     if (!s.unlockAll) await s.spendPoints(drawCost);
     await s.addOwnedPeg(id);
-    Future<void>.delayed(const Duration(milliseconds: 1500), () => Sfx.play('unlock'));
     if (!mounted) return;
-    setState(() {});
     final t = pegThemeById(id);
     final r = rarityOf(id);
     // an opaque route: the screens underneath stop painting while it plays

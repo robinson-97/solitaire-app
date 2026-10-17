@@ -28,8 +28,10 @@ void main() {
         home: Scaffold(body: DrawReveal(theme: pegThemeById(_peg), rarity: r, color: rarityColor(r), onEquip: () {}, onClose: () {})),
       ),
     ));
+    await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 3)));
+    await t.pump();
     var at = 0;
-    for (final ms in [600, 1100, 1450, 1600, 1900, 2500, 3600, 5200]) {
+    for (final ms in [300, 1200, 2500, 4000, 6000, 7000, 7600, 9500]) {
       await t.pump(Duration(milliseconds: ms - at));
       at = ms;
       await t.runAsync(() async {
