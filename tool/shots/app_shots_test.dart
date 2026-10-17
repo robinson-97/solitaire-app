@@ -49,7 +49,16 @@ void main() {
     await shot('home_w0');
     await t.tap(find.text('Collection'));
     await t.pump(const Duration(milliseconds: 400));
-    await t.tap(find.text('Worlds'));
+    await t.pump(const Duration(milliseconds: 400));
+    await shot('collection_pegs');
+    await t.tap(find.textContaining('Draw'));
+    await t.pump(const Duration(milliseconds: 600));
+    await t.pump(const Duration(milliseconds: 600));
+    expect(find.text('Nice!'), findsOneWidget);
+    await shot('draw_reveal');
+    await t.tap(find.text('Nice!'));
+    await t.pump(const Duration(milliseconds: 400));
+    await t.tap(find.text('Stages'));
     await t.pump(const Duration(milliseconds: 400));
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 900)));
     await t.pump(const Duration(milliseconds: 300));

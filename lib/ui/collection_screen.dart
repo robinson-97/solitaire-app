@@ -1,4 +1,7 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import '../game/peg_draw.dart';
+import '../sfx.dart';
 import '../game/board_def.dart';
 import '../game/unlocks.dart';
 import '../game/worlds.dart';
@@ -53,25 +56,20 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
       children: [
         Text('Collection', style: displayFont.copyWith(fontSize: 28, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text('Earn exclusive pegs and boards with high scores.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
+        Text('Spend points on mystery pegs. Boards unlock with high scores.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
         const SizedBox(height: 16),
         _tabs(),
         const SizedBox(height: 16),
         LayoutBuilder(builder: (context, box) {
           final w = (box.maxWidth - 12) / 2;
           if (tab == 0) {
-            final cats = <String>[];
-            for (final t in pegThemes) {
-              if (!cats.contains(t.category)) cats.add(t.category);
-            }
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              for (final cat in cats) ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, bottom: 10),
-                  child: Text(cat, style: displayFont.copyWith(fontSize: 17)),
-                ),
+              _drawPanel(),
+              const SizedBox(height: 18),
+              for (final r in Rarity.values) ...[
+                _rarityHeader(r),
                 Wrap(spacing: 12, runSpacing: 12, children: [
-                  for (final t in pegThemes.where((t) => t.category == cat)) SizedBox(width: w, child: _pegCard(t, u)),
+                  for (final t in pegThemes.where((t) => rarityOf(t.id) == r)) SizedBox(width: w, child: _pegCard(t, u)),
                 ]),
                 const SizedBox(height: 14),
               ],
@@ -136,29 +134,137 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
       ? const PillButton(label: 'Equipped', icon: Icons.check_rounded, compact: true)
       : PillButton(label: 'Equip', primary: true, compact: true, onTap: onTap);
 
+  Widget _rarityHeader(Rarity r) {
+    final all = pegThemes.where((t) => rarityOf(t.id) == r).toList();
+    final got = all.where((t) => widget.storage.ownedPegs.contains(t.id) || t.id == 'acorn').length;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 10),
+      child: Row(children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: rarityColor(r), shape: BoxShape.circle, boxShadow: [BoxShadow(color: rarityColor(r).withValues(alpha: 0.7), blurRadius: 8)])),
+        const SizedBox(width: 8),
+        Text(r.label, style: displayFont.copyWith(fontSize: 17)),
+        const Spacer(),
+        Text('$got / ${all.length}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
+      ]),
+    );
+  }
+
+  Widget _drawPanel() {
+    final s = widget.storage;
+    final free = s.unlockAll;
+    final left = pegThemes.where((t) => !Unlocks(s).pegUnlocked(t.id)).length;
+    final canDraw = left > 0 && (free || s.points >= drawCost);
+    return GlassCard(
+      glow: canDraw ? lantern : null,
+      padding: const EdgeInsets.all(16),
+      child: Column(children: [
+        Row(children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(center: Alignment(-0.3, -0.4), colors: [Color(0xFF6A7BFF), Color(0xFF1B2358)]),
+              border: Border.all(color: Colors.white24, width: 1.5),
+            ),
+            child: const Text('?', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Mystery peg', style: displayFont.copyWith(fontSize: 18)),
+              const SizedBox(height: 2),
+              Text(left == 0 ? 'You own every peg!' : '${s.points} points  ·  $left left to win',
+                  style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.75))),
+            ]),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Wrap(spacing: 6, runSpacing: 6, alignment: WrapAlignment.center, children: [
+          for (final r in Rarity.values) Chip2('${r.label} ${drawOdds[r]}%', color: rarityColor(r)),
+        ]),
+        const SizedBox(height: 14),
+        PillButton(
+          label: left == 0 ? 'Collection complete' : (free ? 'Draw  ·  free in test mode' : 'Draw  ·  $drawCost points'),
+          icon: Icons.auto_awesome_rounded,
+          primary: true,
+          onTap: canDraw ? _draw : null,
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _draw() async {
+    final s = widget.storage;
+    final id = rollPeg([for (final t in pegThemes) t.id], {...s.ownedPegs, 'acorn'}, Random());
+    if (id == null) return;
+    if (!s.unlockAll) await s.spendPoints(drawCost);
+    await s.addOwnedPeg(id);
+    Sfx.play('unlock');
+    if (!mounted) return;
+    setState(() {});
+    final t = pegThemeById(id);
+    final r = rarityOf(id);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: cocoa,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: rarityColor(r), width: 2)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(r.label.toUpperCase(), style: TextStyle(fontSize: 13, letterSpacing: 3, fontWeight: FontWeight.w800, color: rarityColor(r))),
+            const SizedBox(height: 18),
+            AnimatedBuilder(animation: _glow, builder: (_, _) => SizedBox(width: 130, height: 130, child: PegView(theme: t, glow: _glow.value))),
+            const SizedBox(height: 18),
+            Text(t.name, style: displayFont.copyWith(fontSize: 24)),
+            const SizedBox(height: 22),
+            PillButton(
+              label: 'Equip',
+              primary: true,
+              onTap: () async {
+                await s.setPegTheme(id);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            ),
+            const SizedBox(height: 10),
+            PillButton(label: 'Nice!', onTap: () => Navigator.pop(ctx)),
+          ]),
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   Widget _pegCard(PegTheme t, Unlocks u) {
     final open = u.pegUnlocked(t.id);
     final equipped = widget.storage.pegTheme == t.id;
-    final rule = pegRules[t.id];
+    final r = rarityOf(t.id);
     return GlassCard(
       glow: equipped ? lantern : null,
       padding: const EdgeInsets.fromLTRB(12, 18, 12, 14),
       child: Column(children: [
         SizedBox(
           height: 84,
-          child: Stack(alignment: Alignment.center, children: [
-            AnimatedBuilder(
-              animation: _glow,
-              builder: (_, _) {
-                final peg = SizedBox(width: 68, height: 68, child: PegView(theme: t, glow: _glow.value));
-                return open ? peg : ColorFiltered(colorFilter: _grey, child: Opacity(opacity: 0.55, child: peg));
-              },
-            ),
-            if (!open) const Icon(Icons.lock_rounded, size: 26, color: Colors.white70),
-          ]),
+          child: Center(
+            child: open
+                ? AnimatedBuilder(animation: _glow, builder: (_, _) => SizedBox(width: 68, height: 68, child: PegView(theme: t, glow: _glow.value)))
+                : Container(
+                    width: 62,
+                    height: 62,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: rarityColor(r).withValues(alpha: 0.14),
+                      border: Border.all(color: rarityColor(r).withValues(alpha: 0.55), width: 1.6),
+                    ),
+                    child: Text('?', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: rarityColor(r))),
+                  ),
+          ),
         ),
         const SizedBox(height: 10),
-        Text(t.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(open ? t.name : 'Mystery peg', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         if (open)
           _equipButton(equipped, () async {
@@ -166,7 +272,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
             setState(() {});
           })
         else
-          _rulePanel(rule!, u),
+          Chip2(r.label, color: rarityColor(r)),
       ]),
     );
   }
@@ -242,3 +348,10 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     );
   }
 }
+
+Color rarityColor(Rarity r) => switch (r) {
+      Rarity.common => const Color(0xFF9AA7C0),
+      Rarity.rare => const Color(0xFF4FA8FF),
+      Rarity.epic => const Color(0xFFB06CFF),
+      Rarity.legendary => const Color(0xFFFFC83A),
+    };

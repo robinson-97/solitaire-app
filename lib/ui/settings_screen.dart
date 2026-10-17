@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
               contentPadding: EdgeInsets.zero,
               activeThumbColor: lantern,
               title: const Text('Test mode', style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('Unlocks every stage, peg and board so you can try them all.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
+              subtitle: Text('Unlocks every stage and board, and mystery peg draws are free.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
               value: widget.storage.unlockAll,
               onChanged: (v) async {
                 await widget.storage.setUnlockAll(v);

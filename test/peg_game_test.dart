@@ -90,7 +90,7 @@ void main() {
   test('worlds cover all levels and rules point at real boards', () {
     final ids = {for (final w in worlds) ...w.levels.map((l) => l.id)};
     expect(ids.length, handmadeLevels.length);
-    for (final r in [...pegRules.values, ...boardRules.values]) {
+    for (final r in boardRules.values) {
       expect(() => boardById(r.boardId), returnsNormally);
     }
   });

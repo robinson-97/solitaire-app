@@ -119,7 +119,7 @@ class _PlayPageState extends State<PlayPage> {
           const Spacer(),
           Icon(Icons.auto_awesome, size: 15, color: accent),
           const SizedBox(width: 6),
-          Text('${widget.storage.totalPoints}', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text('${widget.storage.points}', style: const TextStyle(fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 18),
         GlassCard(

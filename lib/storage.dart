@@ -30,6 +30,15 @@ class Storage {
   Future<void> addPoints(int n) =>
       _prefs.setInt('total_points', totalPoints + n);
 
+  int get spentPoints => _prefs.getInt('spent_points') ?? 0;
+
+  /// Points available to spend on mystery pegs.
+  int get points => totalPoints - spentPoints;
+  Future<void> spendPoints(int n) => _prefs.setInt('spent_points', spentPoints + n);
+
+  Set<String> get ownedPegs => (_prefs.getStringList('owned_pegs') ?? const <String>[]).toSet();
+  Future<void> addOwnedPeg(String id) => _prefs.setStringList('owned_pegs', {...ownedPegs, id}.toList());
+
   bool get seenIntro => _prefs.getBool('seen_intro') ?? false;
   Future<void> setSeenIntro() => _prefs.setBool('seen_intro', true);
 
@@ -43,8 +52,6 @@ class Storage {
   bool get haptics => _prefs.getBool('haptics') ?? true;
   Future<void> setHaptics(bool v) => _prefs.setBool('haptics', v);
 
-  /// false = sleek neon-night backdrop in levels (default), true = world scenery.
-
   String get pegTheme => _prefs.getString('peg_theme') ?? 'acorn';
   Future<void> setPegTheme(String id) => _prefs.setString('peg_theme', id);
   String get boardTheme => _prefs.getString('board_theme') ?? 'midnight';
@@ -52,7 +59,7 @@ class Storage {
 
   Future<void> resetAll() async {
     for (final k in _prefs.getKeys().toList()) {
-      if (k.startsWith('best_') || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points') {
+      if (k.startsWith('best_') || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points' || k == 'spent_points' || k == 'owned_pegs') {
         await _prefs.remove(k);
       }
     }

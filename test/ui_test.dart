@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hopstone/game/peg_draw.dart';
+import 'package:hopstone/ui/styles.dart';
 import 'package:hopstone/game/unlocks.dart';
 import 'package:hopstone/game/worlds.dart';
 import 'package:hopstone/main.dart';
@@ -51,14 +54,24 @@ void main() {
     expect(u.worldUnlocked(worlds[2]), isFalse);
   });
 
-  test('pegs unlock by score on their board', () async {
+  test('mystery pegs: drawn pegs are owned, rarity odds skip empty tiers', () async {
     final s = await _storage();
     final u = Unlocks(s);
+    expect(u.pegUnlocked('acorn'), isTrue);
     expect(u.pegUnlocked('ember'), isFalse);
-    await s.submitScore(pegRules['ember']!.boardId, 900);
+    final ids = [for (final t in pegThemes) t.id];
+    final rng = Random(1);
+    final owned = <String>{};
+    for (var i = 0; i < ids.length; i++) {
+      final id = rollPeg(ids, owned, rng)!;
+      expect(owned.add(id), isTrue);
+    }
+    expect(rollPeg(ids, owned, rng), isNull);
+    await s.addPoints(2000);
+    await s.spendPoints(drawCost);
+    expect(s.points, 2000 - drawCost);
+    await s.addOwnedPeg('ember');
     expect(u.pegUnlocked('ember'), isTrue);
-    expect(u.pegUnlocked('moonstone'), isFalse);
     expect(u.snapshot().contains('peg:ember'), isTrue);
-    expect(u.nextUnlock(), isNotNull);
   });
 }
