@@ -11,6 +11,7 @@ import 'package:hopstone/ui/draw_reveal.dart';
 import 'package:hopstone/ui/styles.dart';
 
 const _out = String.fromEnvironment('OUT', defaultValue: '/tmp/shots');
+const _skip = bool.fromEnvironment('SKIP');
 const _peg = String.fromEnvironment('PEG', defaultValue: 'magma');
 
 void main() {
@@ -33,6 +34,7 @@ void main() {
     var at = 0;
     for (final ms in [300, 1200, 2500, 4000, 6000, 7000, 7600, 9500]) {
       await t.pump(Duration(milliseconds: ms - at));
+      if (_skip && ms == 1200) await t.tapAt(const Offset(200, 400));
       at = ms;
       await t.runAsync(() async {
         final b = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;

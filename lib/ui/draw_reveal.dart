@@ -63,7 +63,7 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
       if (_reel[j] == widget.theme.id) _reel[j] = ids[(ids.indexOf(widget.theme.id) + 3) % ids.length];
     }
     // stop with the marker somewhere on the winner, not always dead centre
-    _stopAt = _winIndex * _tile + _tile / 2 + (rng.nextDouble() - 0.5) * _tile * 0.5;
+    _stopAt = _winIndex * _tile + _tile / 2 + (rng.nextDouble() - 0.5) * _tile * 0.3;
     _spin.addListener(_onSpin);
     _spin.addStatusListener((s) {
       if (s == AnimationStatus.completed && !_landed) _land();
@@ -116,7 +116,13 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
     setState(() {});
   }
 
-  double get _scroll => _stopAt * Curves.easeOutQuart.transform(_spin.value);
+  double get _scroll {
+    final spun = _stopAt * Curves.easeOutQuart.transform(_spin.value);
+    if (!_landed) return spun;
+    // after stopping, glide the winner exactly under the marker
+    const exact = _winIndex * _tile + _tile / 2;
+    return spun + (exact - spun) * Curves.easeOut.transform((_after.value / 0.18).clamp(0.0, 1.0));
+  }
 
   @override
   void dispose() {
@@ -135,7 +141,7 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        if (_ready && !_landed && _spin.value < 0.7) _spin.animateTo(0.7, duration: const Duration(milliseconds: 300));
+        if (_ready && !_landed && _spin.value < 0.6) _spin.animateTo(1.0, duration: const Duration(milliseconds: 700), curve: Curves.easeOut);
       },
       child: Material(
         color: const Color(0xFF050716),
@@ -158,13 +164,13 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                       style: TextStyle(fontSize: 15, letterSpacing: 5, fontWeight: FontWeight.w800, color: _landed ? col : Colors.white70, shadows: _landed ? [Shadow(color: col, blurRadius: 18)] : null)),
                   const SizedBox(height: 20),
                   SizedBox(
-                    height: 150,
+                    height: 190,
                     width: double.infinity,
                     child: _ready
                         ? CustomPaint(painter: _ReelPainter(_reel, _img, _scroll, markCol, _landed ? a : 0, _winIndex))
                         : const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5))),
                   ),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 10),
                   SizedBox(
                     height: 150,
                     child: _landed
@@ -269,7 +275,7 @@ class _ReelPainter extends CustomPainter {
     final last = ((scroll + cx) / _tile).ceil() + 1;
     final pop = landed > 0 ? Curves.elasticOut.transform((landed / 0.5).clamp(0.0, 1.0)) : 0.0;
     c.save();
-    c.clipRect(Offset.zero & s);
+    c.clipRect(Rect.fromLTWH(0, -20, s.width, s.height + 40));
     for (var i = first; i <= last; i++) {
       if (i < 0 || i >= reel.length) continue;
       final x = cx + i * _tile + _tile / 2 - scroll;
