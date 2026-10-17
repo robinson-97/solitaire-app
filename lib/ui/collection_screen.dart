@@ -207,12 +207,13 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     setState(() {});
     final t = pegThemeById(id);
     final r = rarityOf(id);
-    await showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
+    // an opaque route: the screens underneath stop painting while it plays
+    _glow.stop();
+    await Navigator.of(context).push<void>(PageRouteBuilder<void>(
+      opaque: true,
       transitionDuration: const Duration(milliseconds: 250),
-      transitionBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       pageBuilder: (ctx, _, _) => DrawReveal(
         theme: t,
         rarity: r,
@@ -223,7 +224,8 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         },
         onClose: () => Navigator.pop(ctx),
       ),
-    );
+    ));
+    if (mounted && !reduceMotion(context)) _glow.repeat();
     if (mounted) setState(() {});
   }
 

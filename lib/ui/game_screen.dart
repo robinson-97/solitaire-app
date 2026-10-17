@@ -445,7 +445,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
               child: Row(children: [
-                Expanded(child: PillButton(label: 'Undo', icon: Icons.undo_rounded, onTap: hist.isEmpty ? null : _undo)),
+                Expanded(child: PillButton(label: 'Undo  -${ScoreBreakdown.undoCost}', icon: Icons.undo_rounded, onTap: hist.isEmpty ? null : _undo)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: PillButton(
@@ -1190,7 +1190,7 @@ class _ResultDialogState extends State<_ResultDialog> {
                     fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
                     color: v == 0 && !bold ? Colors.white38 : parchment)),
           ),
-          Text(v == 0 && !bold ? '-' : (bold ? '$v' : '+$v'),
+          Text(v == 0 && !bold ? '-' : (bold || v < 0 ? '$v' : '+$v'),
               style: TextStyle(fontSize: bold ? 18 : 14, fontWeight: bold ? FontWeight.w700 : FontWeight.w500, color: bold ? lantern : null)),
         ]),
       );
@@ -1301,6 +1301,7 @@ class _ResultDialogState extends State<_ResultDialog> {
             if (widget.hasCenter) _row('Center finish', score.centerBonus),
             _row('Speed bonus', score.speedBonus),
             _row('Clean finish', score.cleanBonus),
+            if (score.undoPenalty > 0) _row('Undos (${score.undoPenalty ~/ ScoreBreakdown.undoCost})', -score.undoPenalty),
             Divider(color: Colors.white.withValues(alpha: 0.18), height: 18),
             _row('Total', score.total, bold: true),
             if (medalName != null) ...[

@@ -1,6 +1,8 @@
 /// Core rules of English peg solitaire (33 holes, 32 pegs). No UI code here.
 library;
 
+import 'dart:math';
+
 import 'board_def.dart';
 
 class Move {
@@ -97,6 +99,7 @@ class ScoreBreakdown {
     required this.centerBonus,
     required this.speedBonus,
     required this.cleanBonus,
+    this.undoPenalty = 0,
     this.maxScore = 850,
   });
 
@@ -107,11 +110,16 @@ class ScoreBreakdown {
   final int speedBonus;
   final int cleanBonus;
 
+  /// Points lost for taking moves back ([undoCost] each).
+  final int undoPenalty;
+
   /// Best possible score on the board; medals are fractions of it.
   final int maxScore;
 
-  int get total =>
-      jumpPoints + pegsLeftBonus + centerBonus + speedBonus + cleanBonus;
+  /// Every undo costs this many points, so retrying is possible but not free.
+  static const undoCost = 30;
+
+  int get total => max(0, jumpPoints + pegsLeftBonus + centerBonus + speedBonus + cleanBonus - undoPenalty);
 
   static const _pegsLeftBonus = {1: 250, 2: 120, 3: 60, 4: 30};
 
@@ -132,6 +140,7 @@ class ScoreBreakdown {
       centerBonus: bonuses && pegsLeft == 1 && lastPegInCenter ? 100 : 0,
       speedBonus: bonuses ? (150 - seconds).clamp(0, 150) : 0,
       cleanBonus: bonuses && undos == 0 ? 40 : 0,
+      undoPenalty: undos * undoCost,
       maxScore: maxScore,
     );
   }

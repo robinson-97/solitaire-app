@@ -50,7 +50,12 @@ void main() {
         pegsLeft: 4, lastPegInCenter: false, seconds: 999, undos: 2);
     expect(b.speedBonus, 0);
     expect(b.cleanBonus, 0);
-    expect(b.total, 280 + 30);
+    expect(b.undoPenalty, 60);
+    expect(b.total, 280 + 30 - 60);
+    final c = ScoreBreakdown.compute(pegsLeft: 1, lastPegInCenter: false, seconds: 0, undos: 3);
+    expect(c.total, 310 + 250 + 150 - 90);
+    final many = ScoreBreakdown.compute(pegsLeft: 9, startPegs: 10, lastPegInCenter: false, seconds: 0, undos: 20);
+    expect(many.total, 0);
   });
 
   test('medal thresholds', () {

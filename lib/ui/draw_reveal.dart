@@ -71,7 +71,7 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
             final btnT = Curves.easeOut.transform(_seg(0.78, 0.9));
             final opened = t >= _flash;
             return Stack(fit: StackFit.expand, children: [
-              Container(color: Color.lerp(const Color(0xF2050716), const Color(0xF2050716), 0)),
+              const ColoredBox(color: Color(0xFF050716)),
               CustomPaint(painter: _RevealPainter(t, col, widget.rarity, _charge, _flash)),
               if (flash > 0) Positioned.fill(child: ColoredBox(color: Color.lerp(Colors.white, col, 0.25)!.withValues(alpha: flash * 0.85))),
               SafeArea(
@@ -142,7 +142,6 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(center: const Alignment(-0.35, -0.45), colors: [Color.lerp(hot, Colors.white, 0.55)!, hot, const Color(0xFF14194A)], stops: const [0.0, 0.45, 1.0]),
-        boxShadow: [BoxShadow(color: hot.withValues(alpha: 0.35 + 0.5 * charge), blurRadius: 30 + 40 * charge, spreadRadius: 4 + 14 * charge)],
         border: Border.all(color: Colors.white.withValues(alpha: 0.25 + 0.4 * charge), width: 2),
       ),
       child: Text('?', style: TextStyle(fontSize: 64, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.9))),
@@ -167,7 +166,9 @@ class _RevealPainter extends CustomPainter {
     // phase 1: charging - dim rays and motes sucked into the capsule
     if (t < flash) {
       final k = (t / charge).clamp(0.0, 1.0);
-      _rays(c, o, maxR * 0.6, 10, t * 3, Color.lerp(const Color(0xFF6A7BFF), color, k)!, 0.05 + 0.2 * k);
+      final hot = Color.lerp(const Color(0xFF6A7BFF), color, k)!;
+      c.drawCircle(o, 90 + 110 * k, Paint()..shader = RadialGradient(colors: [hot.withValues(alpha: 0.35 + 0.4 * k), hot.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: o, radius: 90 + 110 * k)));
+      _rays(c, o, maxR * 0.6, 10, t * 3, hot, 0.05 + 0.2 * k);
       final rnd = Random(4);
       for (var i = 0; i < 26; i++) {
         final a = rnd.nextDouble() * 2 * pi;
@@ -198,23 +199,25 @@ class _RevealPainter extends CustomPainter {
         final tw = 0.5 + 0.5 * sin(b * 20 + i);
         final rad = 2 + rnd.nextDouble() * 3.5;
         final col = i % 3 == 0 ? Colors.white : color;
-        c.drawCircle(p, rad * 2.6, Paint()..shader = RadialGradient(colors: [col.withValues(alpha: 0.5 * fade * tw), col.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: p, radius: rad * 2.6)));
+        c.drawCircle(p, rad * 2.2, Paint()..color = col.withValues(alpha: 0.22 * fade * tw));
         c.drawCircle(p, rad * 0.7, Paint()..color = Colors.white.withValues(alpha: fade * tw));
       }
     }
   }
 
   void _rays(Canvas c, Offset o, double len, int count, double rot, Color col, double alpha) {
+    // all rays in one path with one shader
+    final path = Path();
     for (var i = 0; i < count; i++) {
       final a = rot + i * 2 * pi / count;
       const w = 0.07;
-      final path = Path()
+      path
         ..moveTo(o.dx, o.dy)
         ..lineTo(o.dx + cos(a - w) * len, o.dy + sin(a - w) * len)
         ..lineTo(o.dx + cos(a + w) * len, o.dy + sin(a + w) * len)
         ..close();
-      c.drawPath(path, Paint()..shader = RadialGradient(colors: [col.withValues(alpha: alpha), col.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: o, radius: len)));
     }
+    c.drawPath(path, Paint()..shader = RadialGradient(colors: [col.withValues(alpha: alpha), col.withValues(alpha: 0)]).createShader(Rect.fromCircle(center: o, radius: len)));
   }
 
   @override
