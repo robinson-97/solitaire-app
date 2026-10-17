@@ -63,7 +63,7 @@ class BoardDef {
   /// Best score that can be reached on this board (instant, clean, 1 peg).
   /// Medals are fractions of this, so small levels can earn gold too.
   int get maxScore =>
-      maxJumps * 10 + 250 + 150 + 40 + (center != null ? 100 : 0);
+      maxJumps * 10 + 250 + 40 + 40 + (center != null ? 100 : 0);
 
   /// A level counts as cleared when this many pegs (or fewer) are left.
   int get passAt => startPegs < 10 ? 1 : (startPegs < 20 ? 2 : 3);

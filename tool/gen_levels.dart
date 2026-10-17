@@ -44,21 +44,16 @@ void main() {
     BoardShape.heart, BoardShape.ring, BoardShape.tee, BoardShape.arrow, BoardShape.stairs, BoardShape.triangle,
   ];
   final packs = <(String, String, Difficulty, BoardShape, List<int>)>[];
+  // One smooth ramp over all 400 levels: 4 pegs at the start, ~30 at the end.
+  int target(int g) => (4 + 26 * pow(g / 399, 0.75)).round();
   for (var w = 0; w < worldCatalog.length; w++) {
     for (var p = 0; p < 4; p++) {
       final name = worldCatalog[w].packs[p];
-      final late = [BoardShape.english, BoardShape.french, BoardShape.ring, BoardShape.hourglass, BoardShape.english, BoardShape.french];
-      final shape = w == 0 ? BoardShape.english : (w >= 12 ? late[(w * 4 + p) % late.length] : pool[(w * 4 + p) % pool.length]);
-      final wf = w / (worldCatalog.length - 1);
-      final counts = <int>[];
-      for (var i = 0; i < 5; i++) {
-        final local = i / 4;
-        var progress = 0.55 * wf + 0.09 * p + 0.12 * local + (w == 0 ? 0.0 : 0.12);
-        if (progress > 0.98) progress = 0.98;
-        var n = (4 + progress * (maxPegs[shape]! - 4)).round();
-        if (n < 4) n = 4;
-        counts.add(n);
-      }
+      final first = (w * 4 + p) * 5;
+      final counts = [for (var i = 0; i < 5; i++) target(first + i)];
+      // shapes that can actually hold that many pegs, rotated for variety
+      final fits = pool.where((s) => maxPegs[s]! >= counts.last + 1).toList();
+      final shape = w == 0 ? BoardShape.english : fits[(w * 4 + p) % fits.length];
       final level = (w * 4 + p) / 79;
       final d = level < 0.2 ? Difficulty.easy : level < 0.5 ? Difficulty.medium : level < 0.8 ? Difficulty.hard : Difficulty.expert;
       packs.add((name.toLowerCase(), name, d, shape, counts));

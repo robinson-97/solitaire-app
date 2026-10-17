@@ -214,11 +214,11 @@ class _PlayPageState extends State<PlayPage> {
         const SizedBox(height: 12),
         Text(w.tagline, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, height: 1.4, color: Colors.white.withValues(alpha: 0.8))),
         const SizedBox(height: 16),
-        Text('Clear all ${prev.levels.length} levels of ${prev.name} to unlock.', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text('Earn ${Unlocks.starsToOpen} stars in ${prev.name} to unlock.', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
-        ProgressBar(u.solvedIn(prev) / prev.levels.length, color: _accent(w)),
+        ProgressBar((u.starsIn(prev) / Unlocks.starsToOpen).clamp(0.0, 1.0), color: _accent(w)),
         const SizedBox(height: 6),
-        Text('${u.solvedIn(prev)} / ${prev.levels.length}', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
+        Text('${u.starsIn(prev)} / ${Unlocks.starsToOpen} stars', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
       ]),
     );
   }

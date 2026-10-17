@@ -64,8 +64,14 @@ class Unlocks {
   int solvedIn(World w) => w.levels.where((l) => s.solved(l.id)).length;
   bool worldCompleted(World w) => solvedIn(w) == w.levels.length;
 
+  /// Stars earned in a stage (3 per level).
+  int starsIn(World w) => w.levels.fold(0, (a, l) => a + s.stars(l.id));
+
+  /// Stars needed in a stage to open the next one (two thirds of the maximum).
+  static const starsToOpen = 40;
+
   bool worldUnlocked(World w) =>
-      s.unlockAll || w.unlockedBy == null || worldCompleted(worldById(w.unlockedBy!));
+      s.unlockAll || w.unlockedBy == null || starsIn(worldById(w.unlockedBy!)) >= starsToOpen;
 
   /// Everything currently unlocked, as "peg:id" / "board:id" / "world:id".
   Set<String> snapshot() => {
@@ -92,8 +98,7 @@ class Unlocks {
     for (final w in worlds) {
       if (!worldUnlocked(w)) {
         final prev = worldById(w.unlockedBy!);
-        consider('${w.name} stage', 'Clear every ${prev.name} level',
-            solvedIn(prev) / prev.levels.length);
+        consider('${w.name} stage', 'Earn $starsToOpen stars in ${prev.name}', starsIn(prev) / starsToOpen);
       }
     }
     return best;

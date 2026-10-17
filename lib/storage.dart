@@ -1,5 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'game/board_def.dart';
+import 'game/rewards.dart';
+
 /// Everything is saved locally on the device. No account, no network.
 class Storage {
   Storage._(this._prefs);
@@ -30,6 +33,37 @@ class Storage {
   Future<void> addPoints(int n) =>
       _prefs.setInt('total_points', totalPoints + n);
 
+  /// Stars of this level that have already been paid out.
+  int paidStars(String boardId) => _prefs.getInt('paid_$boardId') ?? 0;
+
+  /// Pays the level reward for [stars] (only the part not paid yet). Returns
+  /// the points earned now.
+  Future<int> payLevel(BoardDef b, int stars) async {
+    final gain = levelReward(b, stars) - levelReward(b, paidStars(b.id));
+    if (gain <= 0) return 0;
+    await _prefs.setInt('paid_${b.id}', stars);
+    await addPoints(gain);
+    return gain;
+  }
+
+  // ---- daily gift & challenge (dates are local, "yyyy-mm-dd")
+  String get lastGift => _prefs.getString('gift_date') ?? '';
+  int get giftStreak => _prefs.getInt('gift_streak') ?? 0;
+  Future<void> claimGift(String today, int streak) async {
+    await _prefs.setString('gift_date', today);
+    await _prefs.setInt('gift_streak', streak);
+    await addPoints(dailyGift(streak));
+  }
+
+  String get lastChallenge => _prefs.getString('challenge_date') ?? '';
+  Future<void> claimChallenge(String today) async {
+    await _prefs.setString('challenge_date', today);
+    await addPoints(dailyChallengeBonus);
+  }
+
+  bool get seenCollectionTip => _prefs.getBool('seen_collection_tip') ?? false;
+  Future<void> setSeenCollectionTip() => _prefs.setBool('seen_collection_tip', true);
+
   int get spentPoints => _prefs.getInt('spent_points') ?? 0;
 
   /// Points available to spend on mystery pegs.
@@ -59,7 +93,7 @@ class Storage {
 
   Future<void> resetAll() async {
     for (final k in _prefs.getKeys().toList()) {
-      if (k.startsWith('best_') || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points' || k == 'spent_points' || k == 'owned_pegs') {
+      if (k.startsWith('best_') || k.startsWith('paid_') || k == 'gift_date' || k == 'gift_streak' || k == 'challenge_date' || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points' || k == 'spent_points' || k == 'owned_pegs') {
         await _prefs.remove(k);
       }
     }

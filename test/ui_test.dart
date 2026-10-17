@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/peg_draw.dart';
+import 'package:hopstone/game/rewards.dart';
 import 'package:hopstone/ui/styles.dart';
 import 'package:hopstone/game/unlocks.dart';
 import 'package:hopstone/game/worlds.dart';
@@ -43,15 +44,31 @@ void main() {
     expect(find.text('Leave just 1 peg'), findsOneWidget);
   });
 
-  test('worlds unlock by clearing the previous world', () async {
+  test('stages unlock with stars in the previous stage', () async {
     final s = await _storage();
     final u = Unlocks(s);
     expect(u.worldUnlocked(worlds[1]), isFalse);
-    for (final l in worlds[0].levels) {
+    // 19 levels with 2 stars is not enough (38 < 40) ...
+    for (final l in worlds[0].levels.take(19)) {
       await s.markSolved(l.id);
+      await s.submitStars(l.id, 2);
     }
+    expect(u.worldUnlocked(worlds[1]), isFalse);
+    // ... one more level with 2 stars is (40)
+    await s.submitStars(worlds[0].levels.last.id, 2);
     expect(u.worldUnlocked(worlds[1]), isTrue);
     expect(u.worldUnlocked(worlds[2]), isFalse);
+  });
+
+  test('a level pays once; only better stars pay the difference', () async {
+    final s = await _storage();
+    final b = worlds[0].levels.first;
+    expect(await s.payLevel(b, 1), levelReward(b, 1));
+    expect(await s.payLevel(b, 1), 0);
+    expect(await s.payLevel(b, 3), levelReward(b, 3) - levelReward(b, 1));
+    expect(await s.payLevel(b, 2), 0);
+    expect(s.totalPoints, levelReward(b, 3));
+    expect(levelReward(b, 3) > levelReward(b, 2) && levelReward(b, 2) > levelReward(b, 1), isTrue);
   });
 
   test('mystery pegs: drawn pegs are owned, rarity odds skip empty tiers', () async {

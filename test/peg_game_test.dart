@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/board_def.dart';
+import 'package:hopstone/game/hint.dart';
 import 'package:hopstone/game/levels_data.dart';
 import 'package:hopstone/game/peg_game.dart';
 import 'package:hopstone/game/solver.dart';
@@ -36,7 +37,8 @@ void main() {
     final s = ScoreBreakdown.compute(
         pegsLeft: 1, lastPegInCenter: true, seconds: 60, undos: 0);
     expect(s.jumpPoints, 310);
-    expect(s.total, 310 + 250 + 100 + 90 + 40);
+    expect(s.speedBonus, 20);
+    expect(s.total, 310 + 250 + 100 + 20 + 40);
     expect(s.rank, 'Genius');
     expect(s.medal, Medal.gold);
   });
@@ -53,7 +55,7 @@ void main() {
     expect(b.undoPenalty, 60);
     expect(b.total, 280 + 30 - 60);
     final c = ScoreBreakdown.compute(pegsLeft: 1, lastPegInCenter: false, seconds: 0, undos: 3);
-    expect(c.total, 310 + 250 + 150 - 90);
+    expect(c.total, 310 + 250 + 40 - 90);
     final many = ScoreBreakdown.compute(pegsLeft: 9, startPegs: 10, lastPegInCenter: false, seconds: 0, undos: 20);
     expect(many.total, 0);
   });
@@ -65,9 +67,9 @@ void main() {
     expect(ScoreBreakdown.medalFor(700, 850), Medal.gold);
     // a tiny level: 469 of a possible 470 is gold
     final tiny = handmadeLevels.first;
-    expect(tiny.maxScore, 470);
-    expect(ScoreBreakdown.medalFor(469, tiny.maxScore), Medal.gold);
-    expect(classicBoard.maxScore, 850);
+    expect(tiny.maxScore, 360);
+    expect(ScoreBreakdown.medalFor(359, tiny.maxScore), Medal.gold);
+    expect(classicBoard.maxScore, 740);
   });
   test('every level starts with the promised peg count', () {
     for (final l in handmadeLevels) {
@@ -110,5 +112,25 @@ void main() {
     expect(handmadeLevels.every((l) => l.center == null), isTrue);
     expect(classicBoard.passAt, 3);
     expect(classicBoard.goalText, 'Leave 3 or fewer pegs');
+  });
+
+  test('hints always lead to a win, and say so when a position is lost', () async {
+    for (final id in ['seedling-3', 'sprout-5', 'dune-4']) {
+      final l = handmadeLevels.firstWhere((l) => l.id == id);
+      final g = PegGame(l);
+      var guard = 0;
+      while (g.pegsLeft > 1 && guard++ < 40) {
+        final h = await findHint(l, g.pegs, goal: l.passAt);
+        expect(h.status, HintStatus.move, reason: '$id after $guard moves');
+        final m = g.movesFrom(h.from!).firstWhere((m) => m.to == h.to);
+        g.apply(m);
+      }
+      expect(g.pegsLeft, 1, reason: id);
+    }
+    // two pegs far apart can never meet: nothing to hint
+    final tiny = handmadeLevels.first;
+    final far = [tiny.holes.first, tiny.holes.last];
+    final h = await findHint(tiny, far.toSet(), goal: 1);
+    expect(h.status, isNot(HintStatus.move));
   });
 }

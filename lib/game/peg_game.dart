@@ -138,7 +138,7 @@ class ScoreBreakdown {
       jumpPoints: jumps * 10,
       pegsLeftBonus: bonuses ? (_pegsLeftBonus[pegsLeft] ?? 0) : 0,
       centerBonus: bonuses && pegsLeft == 1 && lastPegInCenter ? 100 : 0,
-      speedBonus: bonuses ? (150 - seconds).clamp(0, 150) : 0,
+      speedBonus: bonuses ? (40 - seconds ~/ 3).clamp(0, 40) : 0,
       cleanBonus: bonuses && undos == 0 ? 40 : 0,
       undoPenalty: undos * undoCost,
       maxScore: maxScore,

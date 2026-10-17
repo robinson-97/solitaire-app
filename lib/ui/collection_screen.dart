@@ -327,7 +327,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
                 Text(w.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: displayFont.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text(open ? '${u.solvedIn(w)} / ${w.levels.length} cleared' : 'Clear every ${prev!.name} level',
+                Text(open ? '${u.solvedIn(w)} / ${w.levels.length} cleared' : 'Earn ${Unlocks.starsToOpen} stars in ${prev!.name}',
                     maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.82))),
               ]),
             ),

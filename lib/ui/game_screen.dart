@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game/board_def.dart';
 import '../game/unlocks.dart';
+import '../game/hint.dart';
+import '../game/rewards.dart';
 import '../game/worlds.dart';
 import '../game/peg_game.dart';
 import '../sfx.dart';
@@ -132,10 +134,13 @@ class _Hop {
 }
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, required this.board, required this.storage, this.nextBoard});
+  const GameScreen({super.key, required this.board, required this.storage, this.nextBoard, this.challenge = false});
   final BoardDef board;
   final Storage storage;
   final BoardDef? nextBoard;
+
+  /// Today's challenge level: the first clear of the day pays a bonus.
+  final bool challenge;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -301,6 +306,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
   }
 
+  bool _hinting = false;
+
+  Future<void> _hint() async {
+    if (_hinting || game.isOver) return;
+    final free = widget.storage.unlockAll;
+    final msg = ScaffoldMessenger.of(context);
+    if (!free && widget.storage.points < hintCost) {
+      msg.showSnackBar(const SnackBar(content: Text('A hint costs $hintCost points')));
+      return;
+    }
+    setState(() => _hinting = true);
+    final r = await findHint(widget.board, game.pegs, goal: widget.board.passAt);
+    if (!mounted) return;
+    setState(() => _hinting = false);
+    if (r.status == HintStatus.move) {
+      if (!free) await widget.storage.spendPoints(hintCost);
+      final m = game.movesFrom(r.from!).where((m) => m.to == r.to).firstOrNull;
+      if (m == null || !mounted) return;
+      setState(() {
+        selected = r.from;
+        targets = [m];
+        confirmRestart = false;
+      });
+      Sfx.play('select');
+      _buzz();
+    } else {
+      msg.showSnackBar(SnackBar(
+        content: Text(r.status == HintStatus.stuck ? 'No way to finish from here - undo a few moves or restart. (No points spent)' : 'Could not find a hint in time. (No points spent)'),
+      ));
+    }
+  }
+
   void _restart() {
     if (game.inProgress && !game.isOver && !confirmRestart) {
       setState(() => confirmRestart = true);
@@ -321,14 +358,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     submitted = true;
     var isBest = false;
     var unlocked = <String>[];
+    var reward = 0;
+    var challengeBonus = false;
     if (first) {
       final u = Unlocks(widget.storage);
       final before = u.snapshot();
       isBest = await widget.storage.submitScore(widget.board.id, score.total);
-      await widget.storage.addPoints(score.total);
       if (cleared) {
         await widget.storage.markSolved(widget.board.id);
         await widget.storage.submitStars(widget.board.id, stars);
+        reward = await widget.storage.payLevel(widget.board, stars);
+        final today = todayKey();
+        if (widget.challenge && widget.storage.lastChallenge != today) {
+          await widget.storage.claimChallenge(today);
+          reward += dailyChallengeBonus;
+          challengeBonus = true;
+        }
       }
       unlocked = (u.snapshot().difference(before)).toList();
     }
@@ -336,10 +381,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (!mounted) return;
     Sfx.play(cleared ? 'win' : 'end');
     if (unlocked.isNotEmpty) Future.delayed(const Duration(milliseconds: 1300), () => Sfx.play('unlock'));
-    _showResult(score, isBest, unlocked, cleared, stars);
+    _showResult(score, isBest, unlocked, cleared, stars, reward, challengeBonus);
   }
 
-  void _showResult(ScoreBreakdown s, bool isBest, List<String> unlocked, bool cleared, int stars) {
+  void _showResult(ScoreBreakdown s, bool isBest, List<String> unlocked, bool cleared, int stars, int reward, bool challengeBonus) {
     showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.6),
@@ -350,6 +395,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         storage: widget.storage,
         cleared: cleared,
         stars: stars,
+        reward: reward,
+        challengeBonus: challengeBonus,
         goal: widget.board.goalText,
         hasCenter: widget.board.center != null,
         onRetry: () {
@@ -445,12 +492,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
               child: Row(children: [
-                Expanded(child: PillButton(label: 'Undo  -${ScoreBreakdown.undoCost}', icon: Icons.undo_rounded, onTap: hist.isEmpty ? null : _undo)),
-                const SizedBox(width: 12),
+                Expanded(child: PillButton(label: 'Undo -${ScoreBreakdown.undoCost}', icon: Icons.undo_rounded, compact: true, onTap: hist.isEmpty ? null : _undo)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: PillButton(
+                    label: widget.storage.unlockAll ? 'Hint' : 'Hint -$hintCost',
+                    icon: Icons.lightbulb_outline_rounded,
+                    compact: true,
+                    onTap: _hinting || game.isOver ? null : _hint,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: PillButton(
                     label: confirmRestart ? 'Tap again' : 'Restart',
                     icon: Icons.refresh_rounded,
+                    compact: true,
                     danger: confirmRestart,
                     onTap: _restart,
                   ),
@@ -1157,6 +1214,8 @@ class _ResultDialog extends StatefulWidget {
     required this.storage,
     required this.cleared,
     required this.stars,
+    required this.reward,
+    required this.challengeBonus,
     required this.goal,
     required this.hasCenter,
     required this.onRetry,
@@ -1169,6 +1228,8 @@ class _ResultDialog extends StatefulWidget {
   final Storage storage;
   final bool cleared;
   final int stars;
+  final int reward;
+  final bool challengeBonus;
   final String goal;
   final bool hasCenter;
   final VoidCallback onRetry;
@@ -1303,7 +1364,14 @@ class _ResultDialogState extends State<_ResultDialog> {
             _row('Clean finish', score.cleanBonus),
             if (score.undoPenalty > 0) _row('Undos (${score.undoPenalty ~/ ScoreBreakdown.undoCost})', -score.undoPenalty),
             Divider(color: Colors.white.withValues(alpha: 0.18), height: 18),
-            _row('Total', score.total, bold: true),
+            _row('Level score', score.total, bold: true),
+            if (widget.cleared) Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                widget.reward > 0 ? '+${widget.reward} points${widget.challengeBonus ? ' (incl. daily bonus)' : ''}' : 'No new points: beat your stars for more',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: widget.reward > 0 ? lantern : Colors.white54),
+              ),
+            ),
             if (medalName != null) ...[
               const SizedBox(height: 10),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
