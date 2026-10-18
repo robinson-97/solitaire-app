@@ -70,6 +70,15 @@ void main() {
     await t.tap(find.text('Play'));
     await t.pump(const Duration(milliseconds: 500));
     await shot('t6_home_daily');
+    for (var i = 0; i < 3; i++) {
+      await t.tap(find.byIcon(Icons.chevron_right_rounded));
+      await t.pump(const Duration(milliseconds: 500));
+    }
+    await shot('t6b_paywall');
+    for (var i = 0; i < 3; i++) {
+      await t.tap(find.byIcon(Icons.chevron_left_rounded));
+      await t.pump(const Duration(milliseconds: 500));
+    }
     await t.tap(find.text('All levels'));
     await t.pump(const Duration(milliseconds: 800));
     await shot('t6_all_levels');

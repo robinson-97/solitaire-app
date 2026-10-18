@@ -111,4 +111,24 @@ void main() {
     expect(u.boardUnlocked('lava'), isTrue);
     expect(u.snapshot().contains('board:lava'), isTrue);
   });
+
+  test('stage 4 and up are behind the one-time purchase', () async {
+    final s = await _storage();
+    final u = Unlocks(s);
+    // even with every star in stages 1-3, stage 4 stays closed
+    for (final w in worlds.take(3)) {
+      for (final l in w.levels) {
+        await s.markSolved(l.id);
+        await s.submitStars(l.id, 3);
+      }
+    }
+    expect(u.worldUnlocked(worlds[2]), isTrue);
+    expect(u.worldPaywalled(worlds[3]), isTrue);
+    expect(u.worldUnlocked(worlds[3]), isFalse);
+    await s.setFullVersion(true);
+    expect(u.worldPaywalled(worlds[3]), isFalse);
+    expect(u.worldUnlocked(worlds[3]), isTrue);
+    // buying does not skip the star requirement of later stages
+    expect(u.worldUnlocked(worlds[4]), isFalse);
+  });
 }

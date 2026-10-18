@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../sfx.dart';
 import '../storage.dart';
 import 'how_to_play.dart';
+import 'paywall.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -18,6 +19,21 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  int _taps = 0;
+
+  /// Five taps on the build number switch the hidden test mode (open stages, free draws and hints).
+  Future<void> _secretTap() async {
+    if (++_taps < 5) return;
+    _taps = 0;
+    final on = !widget.storage.unlockAll;
+    await widget.storage.setUnlockAll(on);
+    widget.onReset();
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(on ? 'Test mode on' : 'Test mode off')));
+    }
+  }
+
   Future<void> _confirmReset() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -44,6 +60,7 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           Text('Settings', style: displayFont.copyWith(fontSize: 28, fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
+          if (!widget.storage.fullVersion && !widget.storage.unlockAll) ...[const PaywallCard(), const SizedBox(height: 14)],
           GlassCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: SwitchListTile(
@@ -108,7 +125,13 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 12),
           PillButton(label: 'Reset progress', icon: Icons.delete_outline_rounded, danger: true, onTap: _confirmReset),
           const SizedBox(height: 18),
-          Center(child: Text('Hopstone  ·  build $_build', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4)))),
+          Center(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _secretTap,
+              child: Padding(padding: const EdgeInsets.all(8), child: Text('Hopstone  ·  build $_build', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4)))),
+            ),
+          ),
         ],
       );
 }

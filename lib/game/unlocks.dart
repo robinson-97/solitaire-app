@@ -51,8 +51,16 @@ class Unlocks {
   /// Stars needed in a stage to open the next one (two thirds of the maximum).
   static const starsToOpen = 40;
 
-  bool worldUnlocked(World w) =>
-      s.unlockAll || w.unlockedBy == null || starsIn(worldById(w.unlockedBy!)) >= starsToOpen;
+  /// Stages 1-3 are free; the rest need the one-time purchase.
+  static const freeStages = 3;
+
+  bool worldPaywalled(World w) => !s.unlockAll && !s.fullVersion && worlds.indexOf(w) >= freeStages;
+
+  bool worldUnlocked(World w) {
+    if (s.unlockAll) return true;
+    if (worldPaywalled(w)) return false;
+    return w.unlockedBy == null || starsIn(worldById(w.unlockedBy!)) >= starsToOpen;
+  }
 
   /// Everything currently unlocked, as "peg:id" / "board:id" / "world:id".
   Set<String> snapshot() => {
@@ -74,7 +82,7 @@ class Unlocks {
     }
 
     for (final w in worlds) {
-      if (!worldUnlocked(w)) {
+      if (!worldUnlocked(w) && !worldPaywalled(w)) {
         final prev = worldById(w.unlockedBy!);
         consider('${w.name} stage', 'Earn $starsToOpen stars in ${prev.name}', starsIn(prev) / starsToOpen);
       }

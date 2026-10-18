@@ -89,8 +89,17 @@ class Storage {
   Future<void> setSeenIntro() => _prefs.setBool('seen_intro', true);
 
   /// Hidden test switch (no screen for it): stages open, draws and hints free.
-  bool get unlockAll => _prefs.getBool('unlock_all') ?? true;
+  /// Test builds (built with TEST_MODE) start with everything open and free.
+  static const _testBuild = bool.fromEnvironment('TEST_MODE');
+  bool get unlockAll => _prefs.getBool('unlock_all') ?? _testBuild;
   Future<void> setUnlockAll(bool v) => _prefs.setBool('unlock_all', v);
+
+  /// The one-time purchase that unlocks stage 4 and up.
+  bool get fullVersion => _prefs.getBool('full_version') ?? false;
+  Future<void> setFullVersion(bool v) async {
+    await _prefs.setBool('full_version', v);
+    changed.value++;
+  }
 
   bool get sound => _prefs.getBool('sound') ?? true;
   Future<void> setSound(bool v) => _prefs.setBool('sound', v);

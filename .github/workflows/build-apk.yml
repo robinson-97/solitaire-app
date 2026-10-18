@@ -26,7 +26,7 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
-      - run: flutter build apk --release --dart-define=BUILD=${{ github.run_number }}
+      - run: flutter build apk --release --dart-define=BUILD=${{ github.run_number }} --dart-define=TEST_MODE=true
       - name: Name the APK
         run: cp build/app/outputs/flutter-apk/app-release.apk hopstone-test.apk
       - uses: actions/upload-artifact@v4

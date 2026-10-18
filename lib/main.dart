@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'sfx.dart';
+import 'purchase.dart';
 import 'storage.dart';
 import 'ui/shaders.dart';
 import 'ui/shell.dart';
@@ -13,6 +15,7 @@ Future<void> main() async {
   Sfx.enabled = storage.sound;
   await Sfx.init();
   await Gfx.init();
+  unawaited(Purchases.init(storage));
   runApp(HopstoneApp(storage: storage));
 }
 

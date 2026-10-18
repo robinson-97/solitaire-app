@@ -6,6 +6,7 @@ import '../game/worlds.dart';
 import '../storage.dart';
 import 'game_screen.dart';
 import 'scenes/scene_neon.dart' show neonPalette;
+import 'paywall.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -31,9 +32,20 @@ class _PlayPageState extends State<PlayPage> {
     return worlds.length - 1;
   }
 
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    Storage.changed.removeListener(_refresh);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    Storage.changed.addListener(_refresh);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.worldNotifier.value = worlds[idx];
     });
@@ -273,6 +285,7 @@ class _PlayPageState extends State<PlayPage> {
   }
 
   Widget _lockedPanel(World w, Unlocks u) {
+    if (u.worldPaywalled(w)) return PaywallCard(accent: _accent(w));
     final prev = worldById(w.unlockedBy!);
     return GlassCard(
       padding: const EdgeInsets.all(24),
