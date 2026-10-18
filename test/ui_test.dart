@@ -91,4 +91,24 @@ void main() {
     expect(u.pegUnlocked('ember'), isTrue);
     expect(u.snapshot().contains('peg:ember'), isTrue);
   });
+
+  test('mystery boards: free boards open, drawn boards stick, no repeats', () async {
+    final s = await _storage();
+    final u = Unlocks(s);
+    expect(u.boardUnlocked('oak'), isTrue);
+    expect(u.boardUnlocked('midnight'), isTrue);
+    expect(u.boardUnlocked('lava'), isFalse);
+    final ids = [for (final t in boardThemes) t.id];
+    final owned = {'oak', 'midnight'};
+    final rng = Random(3);
+    for (var i = 0; i < ids.length - 2; i++) {
+      final id = rollBoard(ids, owned, rng)!;
+      expect(owned.add(id), isTrue);
+      expect(boardRarity.containsKey(id), isTrue);
+    }
+    expect(rollBoard(ids, owned, rng), isNull);
+    await s.addOwnedBoard('lava');
+    expect(u.boardUnlocked('lava'), isTrue);
+    expect(u.snapshot().contains('board:lava'), isTrue);
+  });
 }

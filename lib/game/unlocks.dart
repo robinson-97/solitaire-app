@@ -18,27 +18,9 @@ class UnlockRule {
   String get text => 'Score $minScore on ${boardById(boardId).name}';
 }
 
-/// Boards unlock with high scores (pegs are won with points instead, see peg_draw.dart).
-const boardRules = <String, UnlockRule>{
-  'mossy': UnlockRule('forest', 2, 3, 68),
-  'lava': UnlockRule('volcanic', 3, 5, 73),
-  'neon': UnlockRule('cyber', 3, 5, 76),
-  'crystal': UnlockRule('crystal', 3, 3, 70),
-  'rune': UnlockRule('crystal', 3, 5, 72),
-  'pitch': UnlockRule('fairytale', 3, 5, 76),
-  'marble': UnlockRule('skyislands', 2, 5, 76),
-  'sakura': UnlockRule('sakura', 3, 3, 74),
-  'galaxy': UnlockRule('cosmic', 2, 5, 75),
-  'ocean': UnlockRule('coral', 2, 5, 74),
-  'candy': UnlockRule('candy', 2, 3, 74),
-  'aurora': UnlockRule('frozen', 3, 5, 75),
-  'clockwork': UnlockRule('ruins', 2, 3, 74),
-  'circuit': UnlockRule('cyber', 2, 3, 75),
-  'pond': UnlockRule('sakura', 2, 5, 74),
-  'storm': UnlockRule('skyislands', 3, 3, 76),
-  'honey': UnlockRule('countryside', 3, 5, 74),
-  'jade': UnlockRule('jungle', 3, 3, 75),
-};
+/// Pegs and boards are won with mystery draws (see peg_draw.dart); nothing is
+/// unlocked by score any more.
+const boardRules = <String, UnlockRule>{};
 
 /// Rewards that a given board can earn, for display on level/board cards.
 List<({String kind, String id, String label, int minScore})> rewardsFor(String boardId) => [
@@ -51,11 +33,10 @@ class Unlocks {
   Unlocks(this.s);
   final Storage s;
 
-  bool _met(UnlockRule? r) => s.unlockAll || r == null || s.bestScore(r.boardId) >= r.minScore;
-
   /// Pegs are won with mystery draws; only the starter peg is free.
   bool pegUnlocked(String id) => id == 'acorn' || s.ownedPegs.contains(id);
-  bool boardUnlocked(String id) => _met(boardRules[id]);
+  /// Boards are won with mystery draws; Old Oak and Midnight Grid are free.
+  bool boardUnlocked(String id) => id == 'oak' || id == 'midnight' || s.ownedBoards.contains(id);
 
   /// 0..1 progress towards a rule.
   double progress(UnlockRule r) =>
@@ -77,8 +58,8 @@ class Unlocks {
   Set<String> snapshot() => {
         for (final t in pegThemes)
           if (pegUnlocked(t.id)) 'peg:${t.id}',
-        for (final id in boardRules.keys.followedBy(['oak', 'midnight']))
-          if (boardUnlocked(id)) 'board:$id',
+        for (final t in boardThemes)
+          if (boardUnlocked(t.id)) 'board:${t.id}',
         for (final w in worlds)
           if (worldUnlocked(w)) 'world:${w.id}',
       };
@@ -92,9 +73,6 @@ class Unlocks {
       }
     }
 
-    boardRules.forEach((id, r) {
-      if (!boardUnlocked(id)) consider('${boardLabel(id)} board', r.text, progress(r));
-    });
     for (final w in worlds) {
       if (!worldUnlocked(w)) {
         final prev = worldById(w.unlockedBy!);

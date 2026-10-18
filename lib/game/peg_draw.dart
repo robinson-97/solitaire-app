@@ -51,11 +51,36 @@ const drawCost = 2500;
 /// Chance (in %) of each rarity; tiers with nothing left to win are skipped.
 const drawOdds = <Rarity, int>{Rarity.common: 60, Rarity.rare: 28, Rarity.epic: 9, Rarity.legendary: 3};
 
-/// Picks a random peg the player does not own yet, or null if they own all.
-String? rollPeg(Iterable<String> allIds, Set<String> owned, Random rng) {
+/// Board looks that can be won with draws (Old Oak and Midnight Grid are free).
+const boardRarity = <String, Rarity>{
+  'mossy': Rarity.common,
+  'marble': Rarity.common,
+  'pitch': Rarity.common,
+  'ocean': Rarity.common,
+  'honey': Rarity.common,
+  'sakura': Rarity.rare,
+  'candy': Rarity.rare,
+  'pond': Rarity.rare,
+  'storm': Rarity.rare,
+  'circuit': Rarity.rare,
+  'crystal': Rarity.epic,
+  'rune': Rarity.epic,
+  'aurora': Rarity.epic,
+  'clockwork': Rarity.epic,
+  'jade': Rarity.epic,
+  'lava': Rarity.legendary,
+  'neon': Rarity.legendary,
+  'galaxy': Rarity.legendary,
+};
+
+Rarity rarityOfBoard(String boardId) => boardRarity[boardId] ?? Rarity.common;
+
+/// Picks a random item (peg or board) the player does not own yet, or null if
+/// they own all. [rarity] tells how rare each id is.
+String? rollItem(Iterable<String> allIds, Set<String> owned, Rarity Function(String) rarity, Random rng) {
   final left = [for (final id in allIds) if (!owned.contains(id)) id];
   if (left.isEmpty) return null;
-  final tiers = [for (final r in Rarity.values) if (left.any((id) => rarityOf(id) == r)) r];
+  final tiers = [for (final r in Rarity.values) if (left.any((id) => rarity(id) == r)) r];
   final total = tiers.fold<int>(0, (a, r) => a + drawOdds[r]!);
   var roll = rng.nextInt(total);
   var tier = tiers.last;
@@ -66,6 +91,11 @@ String? rollPeg(Iterable<String> allIds, Set<String> owned, Random rng) {
       break;
     }
   }
-  final pool = [for (final id in left) if (rarityOf(id) == tier) id];
+  final pool = [for (final id in left) if (rarity(id) == tier) id];
   return pool[rng.nextInt(pool.length)];
 }
+
+/// Picks a random peg the player does not own yet, or null if they own all.
+String? rollPeg(Iterable<String> allIds, Set<String> owned, Random rng) => rollItem(allIds, owned, rarityOf, rng);
+
+String? rollBoard(Iterable<String> allIds, Set<String> owned, Random rng) => rollItem(allIds, owned, rarityOfBoard, rng);

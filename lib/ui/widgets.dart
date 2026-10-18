@@ -174,6 +174,9 @@ class BoardPreview extends StatelessWidget {
       );
 }
 
+/// Paints a small flat picture of a board look (for lists and the draw reel).
+void paintBoardPreview(Canvas canvas, Size size, BoardDef def, BoardTheme? theme, bool showPegs) => _PreviewPainter(def, theme, showPegs).paint(canvas, size);
+
 class _PreviewPainter extends CustomPainter {
   _PreviewPainter(this.def, this.theme, this.showPegs);
   final BoardDef def;
@@ -201,11 +204,18 @@ class _PreviewPainter extends CustomPainter {
     final b = wood.getBounds();
     final colors = theme?.body ?? const [Color(0xFFC48A52), Color(0xFF9A6234), Color(0xFF6B4423)];
     canvas.drawPath(wood.shift(const Offset(0, 2)), Paint()..color = theme?.side ?? const Color(0xFF4A2D14));
-    canvas.drawPath(wood, Paint()..color = colors[1]);
+    canvas.drawPath(
+      wood,
+      Paint()..shader = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [colors.first, colors[1], colors.last], stops: const [0.0, 0.5, 1.0]).createShader(b),
+    );
+    if (theme != null) {
+      canvas.drawPath(wood, Paint()..style = PaintingStyle.stroke..strokeWidth = max(1.0, cell * 0.08)..color = theme!.accent.withValues(alpha: 0.55));
+    }
     assert(b.isFinite);
     for (final h in def.holes) {
       final c = geo.centerOf(h);
       canvas.drawCircle(c, cell * 0.3, Paint()..color = theme?.holeOuter ?? holeColor);
+      if (theme != null) canvas.drawCircle(c, cell * 0.2, Paint()..color = theme!.holeInner);
       if (showPegs && def.pegs.contains(h)) {
         canvas.drawCircle(c, cell * 0.27, Paint()..color = const Color(0xFFFFC46B));
       }

@@ -82,6 +82,9 @@ class Storage {
   Set<String> get ownedPegs => (_prefs.getStringList('owned_pegs') ?? const <String>[]).toSet();
   Future<void> addOwnedPeg(String id) => _prefs.setStringList('owned_pegs', {...ownedPegs, id}.toList());
 
+  Set<String> get ownedBoards => (_prefs.getStringList('owned_boards') ?? const <String>[]).toSet();
+  Future<void> addOwnedBoard(String id) => _prefs.setStringList('owned_boards', {...ownedBoards, id}.toList());
+
   bool get seenIntro => _prefs.getBool('seen_intro') ?? false;
   Future<void> setSeenIntro() => _prefs.setBool('seen_intro', true);
 
@@ -102,7 +105,7 @@ class Storage {
 
   Future<void> resetAll() async {
     for (final k in _prefs.getKeys().toList()) {
-      if (k.startsWith('best_') || k.startsWith('paid_') || k == 'gift_date' || k == 'gift_streak' || k == 'challenge_date' || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points' || k == 'spent_points' || k == 'owned_pegs') {
+      if (k.startsWith('best_') || k.startsWith('paid_') || k == 'gift_date' || k == 'gift_streak' || k == 'challenge_date' || k.startsWith('solved_') || k.startsWith('stars_') || k == 'total_points' || k == 'spent_points' || k == 'owned_pegs' || k == 'owned_boards') {
         await _prefs.remove(k);
       }
     }

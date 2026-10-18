@@ -8,10 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/peg_draw.dart';
 import 'package:hopstone/ui/collection_screen.dart';
 import 'package:hopstone/ui/draw_reveal.dart';
+import 'package:hopstone/game/board_def.dart';
+import 'package:hopstone/ui/peg_view.dart';
+import 'package:hopstone/ui/widgets.dart';
 import 'package:hopstone/ui/styles.dart';
 
 const _out = String.fromEnvironment('OUT', defaultValue: '/tmp/shots');
 const _skip = bool.fromEnvironment('SKIP');
+const _board = String.fromEnvironment('BOARD');
 const _peg = String.fromEnvironment('PEG', defaultValue: 'magma');
 
 void main() {
@@ -21,12 +25,25 @@ void main() {
     t.view.devicePixelRatio = 2;
     addTearDown(t.view.reset);
     final key = GlobalKey();
-    final r = rarityOf(_peg);
+    final boards = _board.isNotEmpty;
+    final r = boards ? rarityOfBoard(_board) : rarityOf(_peg);
     await t.pumpWidget(RepaintBoundary(
       key: key,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(body: DrawReveal(theme: pegThemeById(_peg), rarity: r, color: rarityColor(r), left: 12, onEquip: () {}, onClose: () {})),
+        home: Scaffold(
+          body: DrawReveal(
+            items: boards
+                ? [for (final b in boardThemes) RevealItem(b.id, b.name, rarityOfBoard(b.id), (c, size) => paintBoardPreview(c, size, classicBoard, b, false))]
+                : [for (final p in pegThemes) RevealItem(p.id, p.name, rarityOf(p.id), (c, size) => paintPeg(c, size, p, 0.3))],
+            winnerId: boards ? _board : _peg,
+            live: (g) => boards ? BoardPreview(classicBoard, size: 110, theme: boardThemeById(_board), showPegs: false) : PegView(theme: pegThemeById(_peg), glow: g),
+            color: rarityColor(r),
+            left: 12,
+            onEquip: () {},
+            onClose: () {},
+          ),
+        ),
       ),
     ));
     await t.runAsync(() => Future<void>.delayed(const Duration(seconds: 3)));

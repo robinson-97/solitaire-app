@@ -6,7 +6,11 @@ import 'dart:math';
 import 'package:hopstone/game/board_def.dart';
 import 'package:hopstone/game/catalog_data.dart';
 
+/// Reverse moves of the last successful [generate] call (to, over, from).
+final lastReverse = <(Pos, Pos, Pos)>[];
+
 List<Pos>? generate(Set<Pos> holes, List<(int, int)> dirs, int pegs, Random rnd) {
+  final rev = <(Pos, Pos, Pos)>[];
   final cur = <Pos>{holes.elementAt(rnd.nextInt(holes.length))};
   while (cur.length < pegs) {
     final opts = <(Pos, Pos, Pos)>[];
@@ -23,7 +27,11 @@ List<Pos>? generate(Set<Pos> holes, List<(int, int)> dirs, int pegs, Random rnd)
     if (opts.isEmpty) return null;
     final (to, over, from) = opts[rnd.nextInt(opts.length)];
     cur..remove(to)..add(over)..add(from);
+    rev.add((to, over, from));
   }
+  lastReverse
+    ..clear()
+    ..addAll(rev);
   return cur.toList()
     ..sort((a, b) => a.row != b.row ? a.row - b.row : a.col - b.col);
 }
@@ -60,6 +68,8 @@ void main() {
     }
   }
   final used = <String>{};
+  final solFile = Platform.environment['HOP_SOLUTIONS'];
+  final solutions = solFile == null ? null : StringBuffer();
   for (final (id, name, d, shape, counts) in packs) {
     final holes = shapeHoles(shape);
     final dirs = shape == BoardShape.triangle ? triangular : orthogonal;
@@ -81,8 +91,11 @@ void main() {
       }
       if (res == null) throw StateError('cannot build $id ${i + 1}');
       final lit = res.map((p) => '(${p.row}, ${p.col})').join(', ');
+      // forward solution = the reverse moves played backwards
+      solutions?.writeln('$id-${i + 1}: ${lastReverse.reversed.map((m) => '${m.$3.row},${m.$3.col}>${m.$2.row},${m.$2.col}>${m.$1.row},${m.$1.col}').join(' ')}');
       print("  levelBoard('$id-${i + 1}', '$name ${i + 1}', Difficulty.${d.name}, BoardShape.${shape.name}, [$lit]),");
     }
   }
   print('];');
+  if (solFile != null) File(solFile).writeAsStringSync(solutions.toString());
 }

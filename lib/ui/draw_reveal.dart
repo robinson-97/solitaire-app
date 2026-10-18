@@ -5,10 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../game/peg_draw.dart';
 import '../sfx.dart';
-import 'peg_view.dart';
-import 'styles.dart';
 import 'theme.dart';
 import 'widgets.dart';
+
+/// One thing that can appear on the reel (a peg or a board look).
+class RevealItem {
+  const RevealItem(this.id, this.name, this.rarity, this.paint);
+  final String id;
+  final String name;
+  final Rarity rarity;
+
+  /// Draws a still picture of the item into an 80x80 area.
+  final void Function(Canvas canvas, Size size) paint;
+}
 
 const _tile = 108.0;
 const _winIndex = 46;
@@ -25,12 +34,16 @@ Color _rarityColor(Rarity r) => switch (r) {
 /// the marker, slows down and stops on the one you won. Pegs are pre-rendered
 /// to pictures once, so spinning only draws images and stays smooth.
 class DrawReveal extends StatefulWidget {
-  const DrawReveal({super.key, required this.theme, required this.rarity, required this.color, required this.left, required this.onEquip, required this.onClose});
-  final PegTheme theme;
-  final Rarity rarity;
+  const DrawReveal({super.key, this.label = 'MYSTERY PEG', required this.items, required this.winnerId, required this.live, required this.color, required this.left, required this.onEquip, required this.onClose});
+  final String label;
+  final List<RevealItem> items;
+  final String winnerId;
+
+  /// The big live version of the winner, shown after the reel stops.
+  final Widget Function(double glow) live;
   final Color color;
 
-  /// Pegs still to win after this one.
+  /// Items still to win after this one.
   final int left;
   final VoidCallback onEquip;
   final VoidCallback onClose;
@@ -40,7 +53,10 @@ class DrawReveal extends StatefulWidget {
 }
 
 class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
-  late final AnimationController _spin = AnimationController(vsync: this, duration: Duration(milliseconds: 5200 + widget.rarity.index * 500));
+  RevealItem get _winner => widget.items.firstWhere((i) => i.id == widget.winnerId);
+  Rarity get _rarity => _winner.rarity;
+  Rarity _rarityOf(String id) => widget.items.firstWhere((i) => i.id == id).rarity;
+  late final AnimationController _spin = AnimationController(vsync: this, duration: Duration(milliseconds: 5200 + _rarity.index * 500));
   late final AnimationController _after = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
   late final AnimationController _glow = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600));
 
@@ -55,15 +71,15 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     final rng = Random();
-    final ids = [for (final t in pegThemes) t.id];
+    final ids = [for (final t in widget.items) t.id];
     _reel = [for (var i = 0; i < _reelLength; i++) ids[(i * 7 + rng.nextInt(ids.length)) % ids.length]];
     // no neighbour twice in a row, winner at a fixed spot
     for (var i = 1; i < _reel.length; i++) {
       if (_reel[i] == _reel[i - 1]) _reel[i] = ids[(ids.indexOf(_reel[i]) + 1) % ids.length];
     }
-    _reel[_winIndex] = widget.theme.id;
+    _reel[_winIndex] = widget.winnerId;
     for (final j in [_winIndex - 1, _winIndex + 1]) {
-      if (_reel[j] == widget.theme.id) _reel[j] = ids[(ids.indexOf(widget.theme.id) + 3) % ids.length];
+      if (_reel[j] == widget.winnerId) _reel[j] = ids[(ids.indexOf(widget.winnerId) + 3) % ids.length];
     }
     // stop with the marker somewhere on the winner, not always dead centre
     _stopAt = _winIndex * _tile + _tile / 2 + (rng.nextDouble() - 0.5) * _tile * 0.3;
@@ -75,12 +91,12 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
   }
 
   Future<void> _prepare() async {
-    for (final t in pegThemes) {
+    for (final t in widget.items) {
       final rec = ui.PictureRecorder();
       final c = Canvas(rec);
       c.scale(2);
       c.translate(24, 24);
-      paintPeg(c, const Size(80, 80), t, 0.3);
+      t.paint(c, const Size(80, 80));
       final pic = rec.endRecording();
       final img = await pic.toImage(256 ~/ 1, 256 ~/ 1).timeout(const Duration(seconds: 2));
       pic.dispose();
@@ -157,20 +173,20 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
             final pop = Curves.elasticOut.transform((a / 0.6).clamp(0.0, 1.0));
             // marker colour follows the peg that is passing by
             final passing = _reel[((_scroll) / _tile).floor().clamp(0, _reel.length - 1)];
-            final markCol = _landed ? col : _rarityColor(rarityOf(passing));
+            final markCol = _landed ? col : _rarityColor(_rarityOf(passing));
             return Stack(fit: StackFit.expand, children: [
-              CustomPaint(painter: _BackPainter(_spin.value, a, markCol, widget.rarity)),
+              CustomPaint(painter: _BackPainter(_spin.value, a, markCol, _rarity)),
               SafeArea(
                 child: Column(children: [
                   const Spacer(flex: 3),
-                  Text(_landed ? widget.rarity.label.toUpperCase() : 'MYSTERY PEG',
+                  Text(_landed ? _rarity.label.toUpperCase() : widget.label,
                       style: TextStyle(fontSize: 15, letterSpacing: 5, fontWeight: FontWeight.w800, color: _landed ? col : Colors.white70, shadows: _landed ? [Shadow(color: col, blurRadius: 18)] : null)),
                   const SizedBox(height: 20),
                   SizedBox(
                     height: 190,
                     width: double.infinity,
                     child: _ready
-                        ? CustomPaint(painter: _ReelPainter(_reel, _img, _scroll, markCol, _landed ? a : 0, _winIndex))
+                        ? CustomPaint(painter: _ReelPainter(_reel, _img, _scroll, markCol, _landed ? a : 0, _winIndex, _rarityOf))
                         : const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5))),
                   ),
                   const SizedBox(height: 10),
@@ -180,9 +196,9 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                         ? Opacity(
                             opacity: nameT,
                             child: Column(children: [
-                              Transform.scale(scale: 0.3 + 0.7 * pop, child: SizedBox(width: 96, height: 96, child: PegView(theme: widget.theme, glow: _glow.value))),
+                              Transform.scale(scale: 0.3 + 0.7 * pop, child: SizedBox(width: 110, height: 110, child: widget.live(_glow.value))),
                               const SizedBox(height: 12),
-                              Text(widget.theme.name, style: displayFont.copyWith(fontSize: 26, fontWeight: FontWeight.w800)),
+                              Text(_winner.name, style: displayFont.copyWith(fontSize: 26, fontWeight: FontWeight.w800)),
                               const SizedBox(height: 4),
                               Text(widget.left == 0 ? 'Collection complete!' : '${widget.left} more to win', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65))),
                             ]),
@@ -265,7 +281,8 @@ class _BackPainter extends CustomPainter {
 }
 
 class _ReelPainter extends CustomPainter {
-  _ReelPainter(this.reel, this.img, this.scroll, this.color, this.landed, this.winIndex);
+  _ReelPainter(this.reel, this.img, this.scroll, this.color, this.landed, this.winIndex, this.rarityOf);
+  final Rarity Function(String) rarityOf;
   final List<String> reel;
   final Map<String, ui.Image> img;
   final double scroll;

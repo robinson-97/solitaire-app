@@ -60,7 +60,7 @@ class _ShellState extends State<Shell> {
               valueListenable: Storage.changed,
               builder: (_, _, _) {
                 final st = widget.storage;
-                final canDraw = st.points >= drawCost && pegThemes.any((t) => !Unlocks(st).pegUnlocked(t.id));
+                final canDraw = st.points >= drawCost && (pegThemes.any((t) => !Unlocks(st).pegUnlocked(t.id)) || boardThemes.any((t) => !Unlocks(st).boardUnlocked(t.id)));
                 return GlassNavBar(index: tab, onChanged: (i) => setState(() => tab = i), badges: {if (canDraw) 1});
               },
             ),

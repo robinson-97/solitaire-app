@@ -56,29 +56,31 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
       children: [
         Text('Collection', style: displayFont.copyWith(fontSize: 28, fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Text('Spend points on mystery pegs. Boards unlock with high scores.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
+        Text('Spend points on mystery pegs and boards. Every draw is new to you.', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7))),
         const SizedBox(height: 16),
         _tabs(),
         const SizedBox(height: 16),
         LayoutBuilder(builder: (context, box) {
           final w = (box.maxWidth - 12) / 2;
-          if (tab == 0) {
+          if (tab == 0 || tab == 1) {
+            final boards = tab == 1;
+            final ids = boards ? [for (final t in boardThemes) t.id] : [for (final t in pegThemes) t.id];
+            Rarity rar(String id) => boards ? rarityOfBoard(id) : rarityOf(id);
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (!widget.storage.seenCollectionTip) ...[_tip(), const SizedBox(height: 12)],
-              _drawPanel(),
+              _drawPanel(boards),
               const SizedBox(height: 18),
               for (final r in Rarity.values) ...[
-                _rarityHeader(r),
+                _rarityHeader(r, boards),
                 Wrap(spacing: 12, runSpacing: 12, children: [
-                  for (final t in pegThemes.where((t) => rarityOf(t.id) == r)) SizedBox(width: w, child: _pegCard(t, u)),
+                  for (final id in ids.where((id) => rar(id) == r))
+                    SizedBox(width: w, child: boards ? _boardCard(boardThemeById(id), u) : _pegCard(pegThemeById(id), u)),
                 ]),
                 const SizedBox(height: 14),
               ],
             ]);
           }
           final cards = switch (tab) {
-            0 => const <Widget>[],
-            1 => [for (final t in boardThemes) _boardCard(t, u)],
             _ => [for (var i = 0; i < worlds.length; i++) _worldCard(worlds[i], u, i)],
           };
           return Wrap(spacing: 12, runSpacing: 12, children: [for (final c in cards) SizedBox(width: w, child: c)]);
@@ -120,17 +122,6 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     );
   }
 
-  Widget _rulePanel(UnlockRule r, Unlocks u) {
-    final best = widget.storage.bestScore(r.boardId);
-    return Column(children: [
-      Text(r.text, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, height: 1.3, color: Colors.white.withValues(alpha: 0.8))),
-      const SizedBox(height: 8),
-      ProgressBar(u.progress(r), height: 6),
-      const SizedBox(height: 4),
-      Text('Best $best / ${r.minScore}', style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
-    ]);
-  }
-
   Widget _equipButton(bool equipped, VoidCallback onTap) => equipped
       ? const PillButton(label: 'Equipped', icon: Icons.check_rounded, compact: true)
       : PillButton(label: 'Equip', primary: true, compact: true, onTap: onTap);
@@ -141,7 +132,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           const Icon(Icons.lightbulb_outline_rounded, color: lantern),
           const SizedBox(width: 12),
           const Expanded(
-            child: Text('Tip: earn points by clearing levels with more stars, then spend them on a mystery peg. Every draw gives a peg you do not have yet.',
+            child: Text('Tip: earn points by clearing levels with more stars, then spend them on a mystery peg or board. Every draw gives you something new.',
                 style: TextStyle(fontSize: 12.5, height: 1.35)),
           ),
           TextButton(
@@ -154,9 +145,10 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         ]),
       );
 
-  Widget _rarityHeader(Rarity r) {
-    final all = pegThemes.where((t) => rarityOf(t.id) == r).toList();
-    final got = all.where((t) => widget.storage.ownedPegs.contains(t.id) || t.id == 'acorn').length;
+  Widget _rarityHeader(Rarity r, bool boards) {
+    final u = Unlocks(widget.storage);
+    final all = boards ? [for (final t in boardThemes) if (rarityOfBoard(t.id) == r) t.id] : [for (final t in pegThemes) if (rarityOf(t.id) == r) t.id];
+    final got = all.where(boards ? u.boardUnlocked : u.pegUnlocked).length;
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: 10),
       child: Row(children: [
@@ -169,10 +161,11 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
     );
   }
 
-  Widget _drawPanel() {
+  Widget _drawPanel(bool boards) {
     final s = widget.storage;
     final free = s.unlockAll;
-    final left = pegThemes.where((t) => !Unlocks(s).pegUnlocked(t.id)).length;
+    final u = Unlocks(s);
+    final left = boards ? boardThemes.where((t) => !u.boardUnlocked(t.id)).length : pegThemes.where((t) => !u.pegUnlocked(t.id)).length;
     final canDraw = left > 0 && (free || s.points >= drawCost);
     return GlassCard(
       glow: canDraw ? lantern : null,
@@ -193,9 +186,9 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Mystery peg', style: displayFont.copyWith(fontSize: 18)),
+              Text(boards ? 'Mystery board' : 'Mystery peg', style: displayFont.copyWith(fontSize: 18)),
               const SizedBox(height: 2),
-              Text(left == 0 ? 'You own every peg!' : '${s.points} points  ·  $left left to win',
+              Text(left == 0 ? (boards ? 'You own every board!' : 'You own every peg!') : '${s.points} points  ·  $left left to win',
                   style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.75))),
             ]),
           ),
@@ -209,21 +202,32 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
           label: left == 0 ? 'Collection complete' : (free ? 'Draw  ·  free in test mode' : 'Draw  ·  $drawCost points'),
           icon: Icons.auto_awesome_rounded,
           primary: true,
-          onTap: canDraw ? _draw : null,
+          onTap: canDraw ? () => _draw(boards) : null,
         ),
       ]),
     );
   }
 
-  Future<void> _draw() async {
+  Future<void> _draw(bool boards) async {
     final s = widget.storage;
-    final id = rollPeg([for (final t in pegThemes) t.id], {...s.ownedPegs, 'acorn'}, Random());
+    final id = boards
+        ? rollBoard([for (final t in boardThemes) t.id], {...s.ownedBoards, 'oak', 'midnight'}, Random())
+        : rollPeg([for (final t in pegThemes) t.id], {...s.ownedPegs, 'acorn'}, Random());
     if (id == null) return;
     if (!s.unlockAll) await s.spendPoints(drawCost);
-    await s.addOwnedPeg(id);
+    boards ? await s.addOwnedBoard(id) : await s.addOwnedPeg(id);
     if (!mounted) return;
-    final t = pegThemeById(id);
-    final r = rarityOf(id);
+    final r = boards ? rarityOfBoard(id) : rarityOf(id);
+    final u = Unlocks(s);
+    final left = boards ? boardThemes.where((t) => !u.boardUnlocked(t.id)).length : pegThemes.where((t) => !u.pegUnlocked(t.id)).length;
+    final items = boards
+        ? [
+            for (final t in boardThemes)
+              RevealItem(t.id, t.name, rarityOfBoard(t.id), (c, size) => paintBoardPreview(c, size, classicBoard, t, false)),
+          ]
+        : [
+            for (final t in pegThemes) RevealItem(t.id, t.name, rarityOf(t.id), (c, size) => paintPeg(c, size, t, 0.3)),
+          ];
     // an opaque route: the screens underneath stop painting while it plays
     _glow.stop();
     await Navigator.of(context).push<void>(PageRouteBuilder<void>(
@@ -232,12 +236,14 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
       reverseTransitionDuration: const Duration(milliseconds: 200),
       transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       pageBuilder: (ctx, _, _) => DrawReveal(
-        theme: t,
-        rarity: r,
-        left: pegThemes.where((p) => !Unlocks(s).pegUnlocked(p.id)).length,
+        label: boards ? 'MYSTERY BOARD' : 'MYSTERY PEG',
+        items: items,
+        winnerId: id,
+        live: (glow) => boards ? BoardPreview(classicBoard, size: 110, theme: boardThemeById(id), showPegs: false) : PegView(theme: pegThemeById(id), glow: glow),
+        left: left,
         color: rarityColor(r),
         onEquip: () async {
-          await s.setPegTheme(id);
+          boards ? await s.setBoardTheme(id) : await s.setPegTheme(id);
           if (ctx.mounted) Navigator.pop(ctx);
         },
         onClose: () => Navigator.pop(ctx),
@@ -290,23 +296,31 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
   Widget _boardCard(BoardTheme t, Unlocks u) {
     final open = u.boardUnlocked(t.id);
     final equipped = widget.storage.boardTheme == t.id;
-    final rule = boardRules[t.id];
+    final r = rarityOfBoard(t.id);
     return GlassCard(
       glow: equipped ? lantern : null,
       padding: const EdgeInsets.fromLTRB(12, 18, 12, 14),
       child: Column(children: [
         SizedBox(
           height: 84,
-          child: Stack(alignment: Alignment.center, children: [
-            ColorFiltered(
-              colorFilter: open ? const ColorFilter.mode(Colors.transparent, BlendMode.dst) : _grey,
-              child: Opacity(opacity: open ? 1 : 0.55, child: BoardPreview(classicBoard, size: 84, theme: t, showPegs: false)),
-            ),
-            if (!open) const Icon(Icons.lock_rounded, size: 26, color: Colors.white70),
-          ]),
+          child: Center(
+            child: open
+                ? BoardPreview(classicBoard, size: 84, theme: t, showPegs: false)
+                : Container(
+                    width: 74,
+                    height: 74,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: rarityColor(r).withValues(alpha: 0.14),
+                      border: Border.all(color: rarityColor(r).withValues(alpha: 0.55), width: 1.6),
+                    ),
+                    child: Text('?', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: rarityColor(r))),
+                  ),
+          ),
         ),
         const SizedBox(height: 10),
-        Text(t.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        Text(open ? t.name : 'Mystery board', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         if (open)
           _equipButton(equipped, () async {
@@ -314,7 +328,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
             setState(() {});
           })
         else
-          _rulePanel(rule!, u),
+          Chip2(r.label, color: rarityColor(r)),
       ]),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/board_def.dart';
 import 'package:hopstone/game/hint.dart';
@@ -132,5 +134,25 @@ void main() {
     final far = [tiny.holes.first, tiny.holes.last];
     final h = await findHint(tiny, far.toSet(), goal: 1);
     expect(h.status, isNot(HintStatus.move));
+  });
+
+  test('all 400 levels replay to a single peg with their recorded solutions', () {
+    final lines = File('test/fixtures/level_solutions.txt').readAsLinesSync().where((l) => l.isNotEmpty);
+    var n = 0;
+    for (final line in lines) {
+      final id = line.split(': ').first;
+      final level = handmadeLevels.firstWhere((l) => l.id == id);
+      final g = PegGame(level);
+      for (final mv in line.split(': ').last.split(' ')) {
+        final p = mv.split('>').map((e) => e.split(',').map(int.parse).toList()).toList();
+        final from = Pos(p[0][0], p[0][1]), to = Pos(p[2][0], p[2][1]);
+        final m = g.movesFrom(from).where((m) => m.to == to && m.over == Pos(p[1][0], p[1][1]));
+        expect(m, isNotEmpty, reason: '$id: illegal move $mv');
+        g.apply(m.first);
+      }
+      expect(g.pegsLeft, 1, reason: id);
+      n++;
+    }
+    expect(n, 400);
   });
 }
