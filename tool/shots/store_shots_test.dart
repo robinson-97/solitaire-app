@@ -18,7 +18,6 @@ import 'package:hopstone/ui/game_screen.dart';
 import 'package:hopstone/ui/peg_view.dart';
 import 'package:hopstone/ui/styles.dart';
 import 'package:hopstone/ui/theme.dart';
-import 'package:hopstone/ui/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../verify_levels_test.dart' show solve;
 
