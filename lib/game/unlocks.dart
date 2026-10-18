@@ -1,5 +1,6 @@
 import '../storage.dart';
 import '../ui/styles.dart';
+import 'board_def.dart';
 import 'worlds.dart';
 
 /// "Reach [percent]% of the best possible score" on one level unlocks a peg
@@ -51,10 +52,19 @@ class Unlocks {
   /// Stars needed in a stage to open the next one (two thirds of the maximum).
   static const starsToOpen = 40;
 
-  /// Stages 1-3 are free; the rest need the one-time purchase.
-  static const freeStages = 3;
+  /// The first 10 levels are free; everything after needs the one-time purchase.
+  static const freeLevels = 10;
 
-  bool worldPaywalled(World w) => !s.unlockAll && !s.fullVersion && worlds.indexOf(w) >= freeStages;
+  static final Map<String, int> _order = {
+    for (final l in worlds.expand((w) => w.levels).indexed) l.$2.id: l.$1,
+  };
+
+  bool get _paid => s.unlockAll || s.fullVersion;
+
+  bool levelPaywalled(BoardDef b) => !_paid && (_order[b.id] ?? 0) >= freeLevels;
+
+  /// Stages 2-20 are closed without the purchase (stage 1 holds the free levels).
+  bool worldPaywalled(World w) => !_paid && worlds.indexOf(w) >= 1;
 
   bool worldUnlocked(World w) {
     if (s.unlockAll) return true;

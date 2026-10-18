@@ -59,6 +59,10 @@ class _PlayPageState extends State<PlayPage> {
   }
 
   Future<void> _play(BoardDef b) async {
+    if (Unlocks(widget.storage).levelPaywalled(b)) {
+      await Navigator.of(context).push(softRoute(PaywallScreen(storage: widget.storage)));
+      return;
+    }
     await Navigator.of(context).push(softRoute(GameScreen(board: b, storage: widget.storage, nextBoard: nextLevel(b))));
     if (mounted) setState(() {});
   }
@@ -66,7 +70,7 @@ class _PlayPageState extends State<PlayPage> {
   /// Today's puzzle: the same level for everyone on the same day, picked from
   /// the stages the player has already opened.
   BoardDef _challengeLevel(Unlocks u) {
-    final pool = [for (final w in worlds) if (u.worldUnlocked(w)) ...w.levels];
+    final pool = [for (final w in worlds) if (u.worldUnlocked(w)) ...w.levels.where((l) => !u.levelPaywalled(l))];
     final day = DateTime.now().difference(DateTime(2024)).inDays;
     return pool[(day * 7919) % pool.length];
   }
@@ -227,7 +231,14 @@ class _PlayPageState extends State<PlayPage> {
           ]),
         ),
         const SizedBox(height: 18),
-        if (!open) _lockedPanel(w, u) else ...[
+        if (!open) _lockedPanel(w, u) else if (u.levelPaywalled(nextToPlay)) ...[
+          PaywallCard(accent: accent),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: PillButton(label: 'All levels', icon: Icons.grid_view_rounded, onTap: () => _allLevels(w, u, nextToPlay)),
+          ),
+        ] else ...[
           GlassCard(
             padding: const EdgeInsets.all(18),
             onTap: () => _play(nextToPlay),
@@ -305,6 +316,7 @@ class _PlayPageState extends State<PlayPage> {
 
   Widget _tile(BoardDef b, int n, bool current, {required VoidCallback onTap}) {
     final stars = widget.storage.stars(b.id);
+    final locked = Unlocks(widget.storage).levelPaywalled(b);
     return GlassCard(
       onTap: onTap,
       radius: 18,
@@ -315,9 +327,12 @@ class _PlayPageState extends State<PlayPage> {
         const SizedBox(height: 3),
         Text('$n', style: displayFont.copyWith(fontSize: 16)),
         const SizedBox(height: 1),
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          for (var i = 0; i < 3; i++) Icon(Icons.star_rounded, size: 11, color: i < stars ? const Color(0xFFFFD25A) : Colors.white24),
-        ]),
+        if (locked)
+          const Icon(Icons.lock_rounded, size: 12, color: Colors.white54)
+        else
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            for (var i = 0; i < 3; i++) Icon(Icons.star_rounded, size: 11, color: i < stars ? const Color(0xFFFFD25A) : Colors.white24),
+          ]),
       ]),
     );
   }

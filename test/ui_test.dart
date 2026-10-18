@@ -46,6 +46,7 @@ void main() {
 
   test('stages unlock with stars in the previous stage', () async {
     final s = await _storage();
+    await s.setFullVersion(true);
     final u = Unlocks(s);
     expect(u.worldUnlocked(worlds[1]), isFalse);
     // 19 levels with 2 stars is not enough (38 < 40) ...
@@ -112,23 +113,24 @@ void main() {
     expect(u.snapshot().contains('board:lava'), isTrue);
   });
 
-  test('stage 4 and up are behind the one-time purchase', () async {
+  test('only the first 10 levels are free; the one-time purchase opens the rest', () async {
     final s = await _storage();
     final u = Unlocks(s);
-    // even with every star in stages 1-3, stage 4 stays closed
-    for (final w in worlds.take(3)) {
-      for (final l in w.levels) {
-        await s.markSolved(l.id);
-        await s.submitStars(l.id, 3);
-      }
+    final all = worlds.expand((w) => w.levels).toList();
+    expect(all.take(10).every((l) => !u.levelPaywalled(l)), isTrue);
+    expect(u.levelPaywalled(all[10]), isTrue);
+    expect(u.levelPaywalled(all.last), isTrue);
+    // even with every star in stage 1, stage 2 stays closed
+    for (final l in worlds[0].levels) {
+      await s.markSolved(l.id);
+      await s.submitStars(l.id, 3);
     }
-    expect(u.worldUnlocked(worlds[2]), isTrue);
-    expect(u.worldPaywalled(worlds[3]), isTrue);
-    expect(u.worldUnlocked(worlds[3]), isFalse);
+    expect(u.worldPaywalled(worlds[1]), isTrue);
+    expect(u.worldUnlocked(worlds[1]), isFalse);
     await s.setFullVersion(true);
-    expect(u.worldPaywalled(worlds[3]), isFalse);
-    expect(u.worldUnlocked(worlds[3]), isTrue);
+    expect(u.levelPaywalled(all[10]), isFalse);
+    expect(u.worldUnlocked(worlds[1]), isTrue);
     // buying does not skip the star requirement of later stages
-    expect(u.worldUnlocked(worlds[4]), isFalse);
+    expect(u.worldUnlocked(worlds[2]), isFalse);
   });
 }

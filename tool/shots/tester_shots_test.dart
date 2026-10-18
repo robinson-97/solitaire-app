@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hopstone/game/board_def.dart';
 import 'package:hopstone/game/levels_data.dart';
+import 'package:hopstone/game/worlds.dart';
 import 'package:hopstone/main.dart';
 import 'package:hopstone/storage.dart';
 import 'package:hopstone/ui/game_screen.dart';
@@ -133,5 +134,32 @@ void main() {
     }
     await t.pump(const Duration(seconds: 3));
     await shot('t8_win_with_undo');
+  });
+
+  testWidgets('home after the 10 free levels', (t) async {
+    await _font('Nunito', 'assets/fonts/Nunito-Regular.ttf');
+    await _font('MaterialIcons', '/opt/sdk/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    t.view.physicalSize = const Size(1080, 2340);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    final first = handmadeLevels.take(0);
+    SharedPreferences.setMockInitialValues({
+      'seen_intro': true,
+      'unlock_all': false,
+      for (final l in worlds.first.levels.take(10)) ...{'solved_${l.id}': true, 'stars_${l.id}': 2},
+    });
+    final s = await Storage.open();
+    final key = GlobalKey();
+    await t.pumpWidget(RepaintBoundary(key: key, child: HopstoneApp(storage: s)));
+    await t.pump(const Duration(milliseconds: 600));
+    await t.runAsync(() async {
+      final b = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final img = await b.toImage(pixelRatio: 1.0);
+      final data = await img.toByteData(format: ui.ImageByteFormat.png);
+      File('$_out/t9_after_free.png').writeAsBytesSync(data!.buffer.asUint8List());
+    });
+    expect(first, isEmpty);
   });
 }

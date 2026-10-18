@@ -12,6 +12,7 @@ import '../sfx.dart';
 import '../storage.dart';
 import 'background.dart';
 import 'fx.dart';
+import 'paywall.dart';
 import 'peg_view.dart';
 import 'styles.dart';
 import 'theme.dart';
@@ -407,6 +408,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ? null
             : () {
                 Navigator.pop(ctx);
+                if (Unlocks(widget.storage).levelPaywalled(widget.nextBoard!)) {
+                  Navigator.of(context).pushReplacement(softRoute(PaywallScreen(storage: widget.storage)));
+                  return;
+                }
                 Navigator.of(context).pushReplacement(softRoute(GameScreen(
                   board: widget.nextBoard!,
                   storage: widget.storage,
