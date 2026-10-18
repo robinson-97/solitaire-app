@@ -5,6 +5,9 @@ import 'how_to_play.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
+/// Set by the build server (run number) so you can tell which test build is installed.
+const _build = String.fromEnvironment('BUILD', defaultValue: 'dev');
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, required this.storage, required this.onReset});
   final Storage storage;
@@ -104,6 +107,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 12),
           PillButton(label: 'Reset progress', icon: Icons.delete_outline_rounded, danger: true, onTap: _confirmReset),
+          const SizedBox(height: 18),
+          Center(child: Text('Hopstone  ·  build $_build', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4)))),
         ],
       );
 }
