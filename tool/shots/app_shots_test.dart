@@ -31,7 +31,7 @@ void main() {
     addTearDown(t.view.reset);
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': true});
+    SharedPreferences.setMockInitialValues({'seen_intro': true, 'total_points': 99999});
     final storage = await Storage.open();
     final key = GlobalKey();
     await t.pumpWidget(RepaintBoundary(key: key, child: HopstoneApp(storage: storage)));
@@ -54,9 +54,9 @@ void main() {
     await t.tap(find.textContaining('Draw'));
     await t.pump(const Duration(milliseconds: 600));
     await t.pump(const Duration(milliseconds: 600));
-    expect(find.text('Nice!'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
     await shot('draw_reveal');
-    await t.tap(find.text('Nice!'));
+    await t.tap(find.text('Back'));
     await t.pump(const Duration(milliseconds: 400));
     await t.tap(find.text('Stages'));
     await t.pump(const Duration(milliseconds: 400));

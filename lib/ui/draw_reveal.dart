@@ -215,7 +215,7 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                         child: Column(children: [
                           PillButton(label: 'Equip', primary: true, onTap: btnT > 0.8 ? widget.onEquip : null),
                           const SizedBox(height: 12),
-                          PillButton(label: 'Nice!', onTap: btnT > 0.8 ? widget.onClose : null),
+                          PillButton(label: 'Back', onTap: btnT > 0.8 ? widget.onClose : null),
                         ]),
                       ),
                     ),

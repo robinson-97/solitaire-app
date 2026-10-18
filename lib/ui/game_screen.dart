@@ -310,9 +310,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _hint() async {
     if (_hinting || game.isOver) return;
-    final free = widget.storage.unlockAll;
     final msg = ScaffoldMessenger.of(context);
-    if (!free && widget.storage.points < hintCost) {
+    if (widget.storage.points < hintCost) {
       msg.showSnackBar(const SnackBar(content: Text('A hint costs $hintCost points')));
       return;
     }
@@ -321,7 +320,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (!mounted) return;
     setState(() => _hinting = false);
     if (r.status == HintStatus.move) {
-      if (!free) await widget.storage.spendPoints(hintCost);
+      await widget.storage.spendPoints(hintCost);
       final m = game.movesFrom(r.from!).where((m) => m.to == r.to).firstOrNull;
       if (m == null || !mounted) return;
       setState(() {
@@ -496,7 +495,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 const SizedBox(width: 8),
                 Expanded(
                   child: PillButton(
-                    label: widget.storage.unlockAll ? 'Hint' : 'Hint -$hintCost',
+                    label: 'Hint -$hintCost',
                     icon: Icons.lightbulb_outline_rounded,
                     compact: true,
                     onTap: _hinting || game.isOver ? null : _hint,

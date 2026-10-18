@@ -10,7 +10,7 @@ int levelReward(BoardDef b, int stars) {
   return ((base * mult[stars.clamp(0, 3)]) / 10).round() * 10;
 }
 
-/// Hints cost this many points (free in test mode).
+/// Hints cost this many points.
 const hintCost = 50;
 
 /// Daily gift: base points plus a bonus per streak day (up to 6 extra days).

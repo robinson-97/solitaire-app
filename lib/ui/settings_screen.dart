@@ -61,22 +61,6 @@ class _SettingsPageState extends State<SettingsPage> {
             child: SwitchListTile(
               contentPadding: EdgeInsets.zero,
               activeThumbColor: lantern,
-              title: const Text('Test mode', style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text('Unlocks every stage, and mystery draws and hints are free.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
-              value: widget.storage.unlockAll,
-              onChanged: (v) async {
-                await widget.storage.setUnlockAll(v);
-                widget.onReset();
-                setState(() {});
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-          GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              activeThumbColor: lantern,
               title: const Text('Sound effects', style: TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('Soft sounds for jumps, undo and unlocks.', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65))),
               value: widget.storage.sound,
