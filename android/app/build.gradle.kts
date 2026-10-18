@@ -29,11 +29,31 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Test builds from GitHub: one fixed key, so a new test build installs over
+        // the old one and keeps your progress. Not secret, never used for the store.
+        create("test") {
+            storeFile = file("../test-signing.jks")
+            storePassword = "hopstone-test"
+            keyAlias = "test"
+            keyPassword = "hopstone-test"
+        }
+        // The real upload key for Google Play, given through the environment by the
+        // "Release bundle" workflow (secrets on GitHub). It is never stored in the code.
+        val uploadStore = System.getenv("HOP_KEYSTORE")
+        if (uploadStore != null) {
+            create("upload") {
+                storeFile = file(uploadStore)
+                storePassword = System.getenv("HOP_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("HOP_KEY_ALIAS")
+                keyPassword = System.getenv("HOP_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("test")
         }
     }
 }

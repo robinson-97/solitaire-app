@@ -178,12 +178,12 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
               CustomPaint(painter: _BackPainter(_spin.value, a, markCol, _rarity)),
               SafeArea(
                 child: Column(children: [
-                  const Spacer(flex: 3),
+                  const Spacer(flex: 2),
                   Text(_landed ? _rarity.label.toUpperCase() : widget.label,
                       style: TextStyle(fontSize: 15, letterSpacing: 5, fontWeight: FontWeight.w800, color: _landed ? col : Colors.white70, shadows: _landed ? [Shadow(color: col, blurRadius: 18)] : null)),
                   const SizedBox(height: 20),
                   SizedBox(
-                    height: 190,
+                    height: 170,
                     width: double.infinity,
                     child: _ready
                         ? CustomPaint(painter: _ReelPainter(_reel, _img, _scroll, markCol, _landed ? a : 0, _winIndex, _rarityOf))
@@ -191,12 +191,12 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                   ),
                   const SizedBox(height: 10),
                   SizedBox(
-                    height: 150,
+                    height: 172,
                     child: _landed
                         ? Opacity(
                             opacity: nameT,
                             child: Column(children: [
-                              Transform.scale(scale: 0.3 + 0.7 * pop, child: SizedBox(width: 110, height: 110, child: widget.live(_glow.value))),
+                              Transform.scale(scale: 0.3 + 0.7 * pop, child: SizedBox(width: 96, height: 96, child: widget.live(_glow.value))),
                               const SizedBox(height: 12),
                               Text(_winner.name, style: displayFont.copyWith(fontSize: 26, fontWeight: FontWeight.w800)),
                               const SizedBox(height: 4),
@@ -220,7 +220,7 @@ class _DrawRevealState extends State<DrawReveal> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
                 ]),
               ),
             ]);
