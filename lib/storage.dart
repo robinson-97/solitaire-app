@@ -88,6 +88,10 @@ class Storage {
   bool get seenIntro => _prefs.getBool('seen_intro') ?? false;
   Future<void> setSeenIntro() => _prefs.setBool('seen_intro', true);
 
+  /// Hidden test switch (no screen for it): stages open, draws and hints free.
+  bool get unlockAll => _prefs.getBool('unlock_all') ?? true;
+  Future<void> setUnlockAll(bool v) => _prefs.setBool('unlock_all', v);
+
   bool get sound => _prefs.getBool('sound') ?? true;
   Future<void> setSound(bool v) => _prefs.setBool('sound', v);
 

@@ -163,9 +163,10 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
 
   Widget _drawPanel(bool boards) {
     final s = widget.storage;
+    final free = s.unlockAll;
     final u = Unlocks(s);
     final left = boards ? boardThemes.where((t) => !u.boardUnlocked(t.id)).length : pegThemes.where((t) => !u.pegUnlocked(t.id)).length;
-    final canDraw = left > 0 && s.points >= drawCost;
+    final canDraw = left > 0 && (free || s.points >= drawCost);
     return GlassCard(
       glow: canDraw ? lantern : null,
       padding: const EdgeInsets.all(16),
@@ -198,7 +199,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         ]),
         const SizedBox(height: 14),
         PillButton(
-          label: left == 0 ? 'Collection complete' : 'Draw  ·  $drawCost points',
+          label: left == 0 ? 'Collection complete' : (free ? 'Draw  ·  free' : 'Draw  ·  $drawCost points'),
           icon: Icons.auto_awesome_rounded,
           primary: true,
           onTap: canDraw ? () => _draw(boards) : null,
@@ -213,7 +214,7 @@ class _CollectionPageState extends State<CollectionPage> with SingleTickerProvid
         ? rollBoard([for (final t in boardThemes) t.id], {...s.ownedBoards, 'oak', 'midnight'}, Random())
         : rollPeg([for (final t in pegThemes) t.id], {...s.ownedPegs, 'acorn'}, Random());
     if (id == null) return;
-    await s.spendPoints(drawCost);
+    if (!s.unlockAll) await s.spendPoints(drawCost);
     boards ? await s.addOwnedBoard(id) : await s.addOwnedPeg(id);
     if (!mounted) return;
     final r = boards ? rarityOfBoard(id) : rarityOf(id);

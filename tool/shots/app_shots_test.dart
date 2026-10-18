@@ -31,7 +31,7 @@ void main() {
     addTearDown(t.view.reset);
     t.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(t.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    SharedPreferences.setMockInitialValues({'seen_intro': true, 'total_points': 99999});
+    SharedPreferences.setMockInitialValues({'seen_intro': true, 'unlock_all': true});
     final storage = await Storage.open();
     final key = GlobalKey();
     await t.pumpWidget(RepaintBoundary(key: key, child: HopstoneApp(storage: storage)));

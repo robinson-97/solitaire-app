@@ -45,7 +45,7 @@ const pegRarity = <String, Rarity>{
 
 Rarity rarityOf(String pegId) => pegRarity[pegId] ?? Rarity.common;
 
-/// Points one mystery draw costs.
+/// Points one mystery draw costs (free in test mode).
 const drawCost = 2500;
 
 /// Chance (in %) of each rarity; tiers with nothing left to win are skipped.

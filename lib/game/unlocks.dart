@@ -52,7 +52,7 @@ class Unlocks {
   static const starsToOpen = 40;
 
   bool worldUnlocked(World w) =>
-      w.unlockedBy == null || starsIn(worldById(w.unlockedBy!)) >= starsToOpen;
+      s.unlockAll || w.unlockedBy == null || starsIn(worldById(w.unlockedBy!)) >= starsToOpen;
 
   /// Everything currently unlocked, as "peg:id" / "board:id" / "world:id".
   Set<String> snapshot() => {
